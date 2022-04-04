@@ -8,6 +8,11 @@ use tokens::TokenType;
 pub mod errors;
 use errors::LoxError;
 
+pub mod scanner;
+use scanner::scan;
+
+pub mod text_reader;
+
 fn  print_with_flush<T>(text: T)
 where T: fmt::Display
 {
@@ -32,7 +37,7 @@ impl LoxInterpreter {
             match next_line {
                 Ok(0) => {},
                 Ok(_) => {
-                    let response = self.run(&buffer);
+                    let response = self.run(buffer.clone());
                     match response {
                         Ok(text) => println!("{}", text),
                         Err(error_message) => {
@@ -49,11 +54,9 @@ impl LoxInterpreter {
 
     pub fn run_file(&self, path: &String) {}
 
-    fn run(&self, statement: &String) -> Result<String, LoxError> {
-        let mut response = String::new();
-        for c in statement.chars() {
-            response.push(c);
-        };
+    fn run(&self, statement: String) -> Result<String, LoxError> {
+        let tokens = scan(statement);
+        let response = format!("{:?}", tokens);
         Ok(response)
     }
 }
