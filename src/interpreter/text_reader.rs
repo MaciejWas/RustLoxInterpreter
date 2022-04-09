@@ -1,7 +1,7 @@
 use std::cell::Cell;
 
 pub struct TextReader {
-    source: String,
+    pub source: String,
     pos: Cell<usize>,
 }
 
@@ -10,22 +10,25 @@ impl TextReader {
         TextReader {source: source, pos: Cell::new(0)}
     }
 
-    pub fn back(&self) -> Option<()> {
-        let new_pos = self.pos.get() - 1;
-        match self.source.chars().nth(new_pos) {
-            Some(c) => {
-                self.pos.set(new_pos);
-                Some(())
-            }
-            None => None
-        }
+    pub fn reset(self) -> Self {
+        TextReader {source: self.source, pos: Cell::new(0)}
     }
 
+    pub fn back(&self) -> Option<()> {
+        let prev_pos = self.pos.get() as i32 - 1;
+        if prev_pos < 0 {
+            None
+        } else {
+            self.pos.set(prev_pos as usize);
+            Some(())
+        }
+        }
+    
     pub fn advance(&self) -> Option<char> {
-        let new_pos = self.pos.get() + 1;
-        match self.source.chars().nth(new_pos) {
+        let curr_pos = self.pos.get();
+        match self.source.chars().nth(curr_pos) {
             Some(c) => {
-                self.pos.set(new_pos);
+                self.pos.set(curr_pos + 1);
                 Some(c)
             }
             None => None

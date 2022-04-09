@@ -2,66 +2,32 @@ use std::fmt;
 use regex::Regex;
 use super::errors::{LoxError::*, LoxError};
 
-const VARIABLE_PATTERN: &str = r"[a-zA-Z_'][a-zA-Z0-9_']*"; 
-const VARIABLE_RE: Regex = Regex::new(VARIABLE_PATTERN).unwrap();
-const STRING_RE: Regex = Regex::new("\".*\"").unwrap();
-const NUMBER_RE: Regex = Regex::new(r"-?[0-9][0-9,\.]+").unwrap();
+pub mod token_types;
+use token_types::*;
 
-#[derive(Debug, Eq, PartialEq)]
-pub enum TokenType {
-    LeftParen, RightParen, LeftBrace, RightBrace,
-    Comme, Dot, Minus, Plus, Semicolon, Slash, Star,
-  
-    Bang, BangEqual,
-    Equal, EqualEqual,
-    Greater, GreaterEqual,
-    Less, LessEqual,
-  
-    // Literals.
-    Identifier, LoxString, LoxNumber,
-  
-    // Keywords.
-    And, Class, Else, False, Fun, For, If, Nil, Or,
-    Print, Return, Super, This, True, Var, While,
-  
-    Eof, Comment
-}
+const VARIABLE_RE: &str = r"[a-zA-Z_'][a-zA-Z0-9_']*"; 
+const NUMBER_RE: &str = r"[0-9]+";
 
-impl TokenType {
-    pub fn at(self, pos: usize) -> Token {
-        Token { ttype: self, lexeme: "".to_string(), pos: pos}
-    }
-}
-
-impl fmt::Display for TokenType {   
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), std::fmt::Error> {
-        write!(f, "{:?}", self)
-    }
-}
-
-#[derive(Debug)]
-pub struct Token {
-    ttype: TokenType,
-    lexeme: String,
-    pos: usize
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum Token {
+    PunctToken(Punct, usize),
+    KwdToken(Kwd, usize),
+    ValueToken(LoxValue, usize),
+    IdentifierToken(Identifier, usize)
 }
 
 impl Token {
-    pub fn new(tt: TokenType, lexeme: String, pos: usize) -> Self {
-        Token {ttype: tt, lexeme: lexeme, pos: pos}
-    }
 
-    pub fn is_of_type(&self, t: TokenType) -> bool {
-        self.ttype == t
-    }
 
     pub fn from_string(string: String, pos: usize) -> Result<Self, LoxError> {
-        if VARIABLE_RE.is_match(&string) {
-            Ok(Self::new(TokenType::Identifier, string, pos))
-        } else if string.starts_with('"') && string.ends_with('"') {
-            Ok(Self::new(TokenType::LoxString, string, pos))
-        } else if NUMBER_RE.is_match(&string) {
-            Ok(Self::new(TokenType::LoxNumber, string, pos))
+        if Regex::new(VARIABLE_RE).unwrap().is_match(&string) {
+            Ok(Self::IdentifierToken(Identifier::from(string), pos))
+        } else if Regex::new(NUMBER_RE).unwrap().is_match(&string) {
+            Ok(Self::ValueToken(LoxValue::from_int(string.parse().expect("Failed to parse string")), pos))
+        } else if string.eq("True") {
+            Ok(Self::ValueToken(LoxValue::from_bool(true), pos))
+        } else if string.eq("False") {
+            Ok(Self::ValueToken(LoxValue::from_bool(false), pos))
         } else {
             Err(ParsingError(format!("Did not understand {}", string)))
         }
@@ -70,6 +36,34 @@ impl Token {
 
 impl fmt::Display for Token {   
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), std::fmt::Error> {
-        write!(f, "[Token: {}, {} | at {}]", self.ttype, self.lexeme, self.pos)
+        write!(f, "[Token: {:?}]", self)
+    }
+}
+
+pub trait Tokenizable {
+    fn at(self, pos: usize) -> Token;
+}
+
+impl Tokenizable for Punct {
+    fn at(self, pos: usize) -> Token {
+        Token::PunctToken(self, pos)
+    }
+}
+
+impl Tokenizable for Kwd {
+    fn at(self, pos: usize) -> Token {
+        Token::KwdToken(self, pos)
+    }
+}
+
+impl Tokenizable for Identifier {
+    fn at(self, pos: usize) -> Token {
+        Token::IdentifierToken(self, pos)
+    }
+}
+
+impl Tokenizable for LoxValue {
+    fn at(self, pos: usize) -> Token {
+        Token::ValueToken(self, pos)
     }
 }

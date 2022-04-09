@@ -1,139 +1,164 @@
-use super::tokens::{TokenType, TokenType::*, Token};
-use super::errors::LoxError;
-use super::text_reader::TextReader; 
+use super::tokens::{Tokenizable, Token, Token::*, token_types::{Punct, Punct::*, Kwd::*}};
+use super::errors::{LoxResult, LoxError};
+use super::text_reader::TextReader;
 
-type ScannerResult = Result<Token, LoxError>;
-
-pub fn scan(source: String) -> Result<Box<Vec<Token>>, LoxError> {
-    let reader = TextReader::new(source);
-    let mut tokens = Box::new(Vec::new());
-
-    loop {
-        match next_token(&reader) {
-            Ok(token) => tokens.push(token),
-            Err(err) => return Err(err)
-        }
-
-        let last_token = tokens.last().expect("Failed to get last token.");
-        if last_token.is_of_type(Eof) {
-            break
-        }
-    }
-    
-    Ok(tokens)
+pub struct ScannerOutput {
+    pub reader: TextReader,
+    pub tokens: Box<Vec<Token>>
 }
 
-fn next_token(
-    reader: &TextReader,
-) -> Result<Token, LoxError> {
-    loop {
-        match reader.advance() {
+pub struct Scanner {
+    reader: TextReader,
+}
+
+impl Scanner {
+    pub fn new(source: String) -> Self {
+        Scanner {
+            reader: TextReader::new(source)
+        }
+    }
+
+    pub fn scan(self) -> LoxResult<ScannerOutput> {
+        let mut tokens = Box::new(Vec::new());
+        loop {
+            let token = self.next_token()?;
+            tokens.push(token.clone());
+            if is_eof(&token) { break }
+        }
+        
+        Ok(ScannerOutput{
+            reader: self.reader,
+            tokens: tokens
+        })
+    }
+
+    fn next_token(
+        &self,
+    ) -> LoxResult<Token> {
+        loop {
+            match self.reader.advance() {
+                Some(c) => match c {
+                    '('  => return Ok(LeftParen.at(self.reader.get_pos())),
+                    ')'  => return Ok(RightParen.at(self.reader.get_pos())),
+                    '{'  => return Ok(LeftBrace.at(self.reader.get_pos())),
+                    '}'  => return Ok(RightBrace.at(self.reader.get_pos())),
+                    ','  => return Ok(Comme.at(self.reader.get_pos())),
+                    '.'  => return Ok(Dot.at(self.reader.get_pos())),
+                    '-'  => return Ok(Minus.at(self.reader.get_pos())),
+                    '+'  => return Ok(Plus.at(self.reader.get_pos())),
+                    ';'  => return Ok(Semicolon.at(self.reader.get_pos())),
+                    '*'  => return Ok(Star.at(self.reader.get_pos())),
+                    '!'  => return self.handle_bang(),
+                    '='  => return self.handle_eq(),
+                    '>'  => return self.handle_gr(),
+                    '<'  => return self.handle_le(),
+                    '/'  => return self.handle_slash(),
+                    ' '  => return self.next_token(),
+                    '\t' => return self.next_token(),
+                    '\n' => return self.next_token(),
+                    _   => if is_valid_variable_char(c) {
+                            return self.handle_literal()
+                        } else {
+                            return Err(LoxError::ParsingError("Unrecognized character".to_string()))
+                        }
+                },
+                None => return Ok(Eof.at(self.reader.get_pos()))
+            }
+        };
+    }
+
+    fn handle_literal(&self) -> LoxResult<Token> {
+        let mut buffer = String::new();
+        self.reader.back(); // Function is called only after the reader finds the firse letter, so we have to go back
+        loop {
+            match self.reader.advance() {
+                Some(c) => {
+                    if is_valid_variable_char(c) {
+                        buffer.push(c)
+                    } else {
+                        self.reader.back();
+                        break
+                    }
+                },
+                None => break
+            }
+        }
+        Token::from_string(buffer, self.reader.get_pos())
+    }
+
+    fn handle_bang(&self) -> Result<Token, LoxError> {
+        match self.reader.advance() {
             Some(c) => match c {
-                '('  => return Ok(LeftParen.at(reader.get_pos())),
-                ')'  => return Ok(RightParen.at(reader.get_pos())),
-                '{'  => return Ok(LeftBrace.at(reader.get_pos())),
-                '}'  => return Ok(RightBrace.at(reader.get_pos())),
-                ','  => return Ok(Comme.at(reader.get_pos())),
-                '.'  => return Ok(Dot.at(reader.get_pos())),
-                '-'  => return Ok(Minus.at(reader.get_pos())),
-                '+'  => return Ok(Plus.at(reader.get_pos())),
-                ';'  => return Ok(Semicolon.at(reader.get_pos())),
-                '*'  => return Ok(Star.at(reader.get_pos())),
-                '!'  => return handle_bang(&reader),
-                '='  => return handle_eq(&reader),
-                '>'  => return handle_gr(&reader),
-                '<'  => return handle_le(&reader),
-                '/'  => return handle_slash(&reader),
-                ' '  => return next_token(&reader),
-                '\t' => return next_token(&reader),
-                '\n' => return next_token(&reader),
-                 _   => return handle_literal(&reader) // Err(failed_to_parse_at(reader.get_pos())) 
+                '=' => return Ok(BangEqual.at(self.reader.get_pos())),
+                _  => return self.go_back_and_return(Bang)
+            }
+            None => return Err(failed_to_scan_at(self.reader.get_pos()))
+        }
+    }
+
+    fn handle_eq(&self) -> Result<Token, LoxError> {
+        match self.reader.advance() {
+            Some(c) => match c {
+                '=' => return Ok(EqualEqual.at(self.reader.get_pos())),
+                _  => return self.go_back_and_return(Equal)
+            }
+            None => return Err(failed_to_scan_at(self.reader.get_pos()))
+        }
+    }
+
+    fn handle_le(&self) -> Result<Token, LoxError> {
+        match self.reader.advance() {
+            Some(c) => match c {
+                '=' => return Ok(LessEqual.at(self.reader.get_pos())),
+                _  => return self.go_back_and_return(Less)
             },
-            None => return Ok(Eof.at(reader.get_pos()))
-        }
-    };
-}
-
-fn handle_literal(reader: &TextReader) -> ScannerResult {
-    let mut buffer = String::new();
-
-    loop {
-        match reader.advance() {
-            Some(c) => {
-                if c.is_alphanumeric() || c == '\'' || c == '_' {
-                    buffer.push(c)
-                } else {
-                    break
-                }
-            },
-            None => break
+            None => return Err(failed_to_scan_at(self.reader.get_pos()))
         }
     }
 
-    Token::from_string(buffer)
-}
-
-fn handle_bang(reader: &TextReader) -> Result<Token, LoxError> {
-    match reader.advance() {
-        Some(c) => match c {
-            '=' => return Ok(BangEqual.at(reader.get_pos())),
-             _  => return go_back_and_return(&reader, Bang)
+    fn handle_gr(&self) -> Result<Token, LoxError> {
+        match self.reader.advance() {
+            Some(c) => match c {
+                '=' => return Ok(GreaterEqual.at(self.reader.get_pos())),
+                _  => return self.go_back_and_return(Greater),
+            }
+            None => return Err(failed_to_scan_at(self.reader.get_pos()))
         }
-        None => return Err(failed_to_parse_at(reader.get_pos()))
     }
-}
 
-fn handle_eq(reader: &TextReader) -> Result<Token, LoxError> {
-    match reader.advance() {
-        Some(c) => match c {
-            '=' => return Ok(EqualEqual.at(reader.get_pos())),
-             _  => return go_back_and_return(reader, Equal)
+    fn handle_slash(&self) -> Result<Token, LoxError> {
+        match self.reader.advance() {
+            Some(c) => match c {
+                '/' => return self.handle_comment(),
+                    _  => return self.go_back_and_return(Slash),
+            }
+            None => return Err(failed_to_scan_at(self.reader.get_pos()))
         }
-        None => return Err(failed_to_parse_at(reader.get_pos()))
+    }
+
+    fn handle_comment(&self) -> Result<Token, LoxError> {
+        let comment_pos = self.reader.get_pos();
+        self.reader.advance_until_newline();
+        Ok(Comment.at(comment_pos))
+    }
+
+    fn go_back_and_return(&self, punct: Punct) -> Result<Token, LoxError> {
+        self.reader.back().expect("Failed to go back");
+        return Ok(punct.at(self.reader.get_pos()))
     }
 }
 
-fn handle_le(reader: &TextReader) -> Result<Token, LoxError> {
-    match reader.advance() {
-        Some(c) => match c {
-            '=' => return Ok(LessEqual.at(reader.get_pos())),
-             _  => return go_back_and_return(&reader, Less)
-        },
-        None => return Err(failed_to_parse_at(reader.get_pos()))
+fn is_valid_variable_char(c: char) -> bool {
+    c.is_alphanumeric() || c == '\'' || c == '_'
+}
+
+fn failed_to_scan_at(pos: usize) -> LoxError {
+    LoxError::ScanningError(format!("Failed to parse. I'm lost at {}", pos))
+}
+
+fn is_eof(t: &Token) -> bool {
+    match t {
+        KwdToken(kwd, _) => { if kwd.eq(&Eof) { true } else { false } } ,
+        _ => false
     }
-}
-
-fn handle_gr(reader: &TextReader) -> Result<Token, LoxError> {
-    match reader.advance() {
-        Some(c) => match c {
-            '=' => return Ok(GreaterEqual.at(reader.get_pos())),
-             _  => return go_back_and_return(reader, Greater),
-        }
-        None => return Err(failed_to_parse_at(reader.get_pos()))
-    }
-}
-
-fn handle_slash(reader: &TextReader) -> Result<Token, LoxError> {
-    match reader.advance() {
-        Some(c) => match c {
-            '/' => return handle_comment(&reader),
-                _  => return go_back_and_return(reader, Slash),
-        }
-        None => return Err(failed_to_parse_at(reader.get_pos()))
-    }
-}
-
-fn handle_comment(reader: &TextReader) -> Result<Token, LoxError> {
-    let comment_pos = reader.get_pos();
-    reader.advance_until_newline();
-    Ok(Comment.at(comment_pos))
-}
-
-fn go_back_and_return(reader: &TextReader, t: TokenType) -> Result<Token, LoxError> {
-    reader.back().expect("Failed to go back");
-    return Ok(t.at(reader.get_pos()))
-}
-
-fn failed_to_parse_at(pos: usize) -> LoxError {
-    LoxError::ParsingError(format!("Failed to parse. I'm lost at {}", pos))
 }

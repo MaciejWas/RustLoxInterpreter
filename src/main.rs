@@ -14,6 +14,4 @@ fn main() {
             std::process::exit(64)
         }
     }
-
-    println!("Hello, world!");
 }

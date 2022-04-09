@@ -2,15 +2,13 @@ use std::io::Write;
 use std::fmt;
 use std::io;
 
-pub mod tokens;
-use tokens::TokenType;
-
-pub mod errors;
 use errors::LoxError;
+use scanner::Scanner;
 
+pub mod tokens;
 pub mod scanner;
-use scanner::scan;
-
+// pub mod parser;
+pub mod errors;
 pub mod text_reader;
 
 fn  print_with_flush<T>(text: T)
@@ -55,8 +53,8 @@ impl LoxInterpreter {
     pub fn run_file(&self, path: &String) {}
 
     fn run(&self, statement: String) -> Result<String, LoxError> {
-        let tokens = scan(statement);
-        let response = format!("{:?}", tokens);
+        let scanner_output = Scanner::new(statement).scan();
+        let response = format!("{:?}", scanner_output?.tokens);
         Ok(response)
     }
 }
