@@ -30,6 +30,43 @@ pub enum Punct {
     Less, LessEqual,
 }
 
+impl Punct {
+    pub fn is_eq_or_neq(&self) -> bool {
+        match self {
+            Self::EqualEqual => true, Self::BangEqual => true,
+            _ => false
+        }
+    }
+
+    pub fn is_comparison(&self) -> bool {
+        match self {
+            Self::Greater => true, Self::GreaterEqual => true, Self::Less => true, Self::LessEqual => true,
+            _ => false
+        }
+    }
+
+    pub fn is_plus_minus(&self) -> bool {
+        match self {
+            Self::Plus => true, Self::Minus => true,
+            _ => false
+        }
+    }
+
+    pub fn is_mul_div(&self) -> bool {
+        match self {
+            Self::Dot => true, Self::Slash => true,
+            _ => false
+        }
+    }
+
+    pub fn is_neg(&self) -> bool {
+        match self {
+            Self::Minus => true,
+            _ => false
+        }
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Kwd {
     // Keywords.

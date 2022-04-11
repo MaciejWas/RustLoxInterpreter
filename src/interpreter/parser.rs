@@ -1,42 +1,46 @@
+// use super::super::interpreter::parser::expression_structure::*;
+use crate::interpreter::LoxError;
+use crate::interpreter::parser::FinalOrRecursive::Final;
 use super::super::interpreter::text_reader::TextReader;
 use super::super::interpreter::scanner::ScannerOutput;
-use super::errors::{LoxError::*, LoxError, LoxResult};
+use super::errors::{LoxError::*, LoxResult};
 use std::cell::Cell;
 use super::tokens::{Token, Token::*, token_types::{Punct, Punct::*, LoxValue}};
 
-pub struct Parser {
-    reader: TextReader,
+pub mod expression_structure;
+use expression_structure::*;
+
+struct TokenReader {
     tokens: Box<Vec<Token>>,
     pos: Cell<usize>
 }
 
-impl Parser {
-    pub fn new(scanner_output: ScannerOutput) -> Self{
-        Parser {
-            reader: scanner_output.reader,
-            tokens: scanner_output.tokens,
+impl TokenReader {
+    fn new(tokens: Box<Vec<Token>>) -> Self {
+        TokenReader {
+            tokens: tokens,
             pos: Cell::new(0)
         }
+    }
+
+    pub fn advance(&self) -> Option<&Token> {
+        self.next();
+        self.curr_token()
     }
 
     fn curr_token(&self) -> Option<&Token> {
         self.tokens.get(self.pos.get())
     }
 
-    fn parsing_error<A>(&self, text: &str) -> LoxResult<A> {
-        let curr_token: Option<&Token> = self.curr_token();
-
-        Err(ParsingError(
-            text.to_string() + 
-            &format!("\n\t At position {}", self.pos.get()).to_string()
-        ))
+    fn pos(&self) -> usize {
+        self.pos.get()
     }
 
-    fn incr_pos(&self) {
+    fn next(&self) {
         self.pos.set(self.pos.get() + 1);
     }
 
-    fn decr_pos(&self) {
+    fn back(&self) {
         self.pos.set(self.pos.get() - 1);
     }
 
@@ -44,56 +48,140 @@ impl Parser {
         self.tokens.get(self.pos.get() - 1)
             .ok_or(ParsingError("Failed to go back".to_string()))
     }
+}
 
-    fn expression(&self) -> LoxResult<Expr> {
-        self.equality()
+pub struct Parser {
+    text_reader: TextReader,
+    token_reader: TokenReader,
+    pos: Cell<usize>
+}
+
+impl Parser {
+    pub fn new(scanner_output: ScannerOutput) -> Self{
+        Parser {
+            text_reader: scanner_output.reader,
+            token_reader: TokenReader::new(scanner_output.tokens),
+            pos: Cell::new(0)
+        }
     }
 
-    fn equality(&self) -> LoxResult<Expr> {
-        let left: LoxResult<Expr> = self.comparison();
-        let mut op: LoxResult<Punct> = self.parsing_error("Operand not found!");
-        let mut right: LoxResult<Expr> = self.parsing_error("Right side of expr not found!");
+    fn expression(&self) -> LoxResult<ExprNode> {
+        let eq = self.equality()?;
+        Ok(ExprNode { eq: eq })
+    }
 
-        while let Some(PunctToken(p, _)) = self.tokens.get(self.pos.get()) {
-            if *p == EqualEqual || *p == BangEqual {
-                op = Ok(*p);
-                right = self.comparison();
+    fn equality(&self) -> LoxResult<EqNode> {
+        let left: CompNode = self.comparison()?;
+        let mut node: Option<EqNode> = None;
+        
+        while let Some(token) = self.token_reader.advance() {
+            if token.is_eq_or_neq() {
+                let right = self.comparison()?;
+                node = Parser::recursive_node(node, left, *token, right)
+            } else {
+                return Err(self.err("Expected new comparison but no :("));
             }
         }
 
-        Ok(Expr::create_binary(left?, op?, right?))
+        node.ok_or(self.err("Equality node not found!"))
     }
 
-    fn comparison(&self) -> LoxResult<Expr> {Ok(Expr::Atomic(LoxValue::from_bool(true)))}
-}
+    fn comparison(&self) -> LoxResult<CompNode> {
+        let left: TermNode = self.term()?;
+        let mut node: Option<CompNode> = None;
+        
+        while let Some(token) = self.token_reader.advance() {
+            if token.is_comparison() {
+                let right = self.term()?;
+                node = Parser::recursive_node(node, left, *token, right)
+            } else {
+                return Err(self.err("Expected new comparison but no :("));
+            }
+        }
 
-pub enum Expr {
-    Atomic(LoxValue),
-    Unary(Punct, Box<Expr>),
-    Binary(Box<Expr>, Punct, Box<Expr>)
-}
-
-impl Expr {
-    pub fn create_unary(op: Punct, right: Expr) -> Expr {
-        Expr::Unary(op, Box::new(right))
+        node.ok_or(self.err("Comparison node not found!"))
     }
 
-    pub fn create_binary(left: Expr, op: Punct, right: Expr) -> Self {
-        Expr::Binary(Box::new(left), op, Box::new(right))
+    fn term(&self) -> LoxResult<TermNode> {
+        let left: FactorNode = self.factor()?;
+        let mut node: Option<TermNode> = None;
+        
+        while let Some(token) = self.token_reader.advance() {
+            if token.is_plus_minus() {
+                let right = self.factor()?;
+                node = Parser::recursive_node(node, left, *token, right)
+            } else {
+                return Err(self.err("Expected new comparison but no :("));
+            }
+        }
+
+        node.ok_or(self.err("Term not found!"))
+    }
+
+    fn factor(&self) -> LoxResult<FactorNode> {
+        let left: UnaryNode = self.unary()?;
+        let node: Option<FactorNode> = None;
+        
+        while let Some(token) = self.token_reader.advance() {
+            if token.is_mul_div() {
+                let right = self.unary()?;
+                node = Parser::recursive_node(node, left, *token, right)
+            } else {
+                return Err(self.err("Expected new comparison but no :("));
+            }
+        }
+
+        node.ok_or(self.err("Factor node not found!"))
+    }
+
+    fn unary(&self) -> LoxResult<UnaryNode> {
+        let mut op: Option<Token> = None;
+        let primary: Primary;
+
+        let token: &Token = self.token_reader.advance()
+            .ok_or(self.err("Token not found!"))?;
+        
+        if token.is_neg() {
+            op = Some(token.clone());
+            primary = self.primary()?;
+        } else {
+            self.token_reader.back();
+            primary = self.primary()?;
+        }
+
+        Ok( UnaryNode::of(op, primary) )
+    }
+
+    fn primary(&self) -> LoxResult<Primary> {
+        let err_msg = "Primary expressio not found!";
+        match self.token_reader.advance() {
+            Some(token) => match token {
+                ValueToken(_, _)      => Ok(Primary::of(token.clone())),
+                IdentifierToken(_, _) => Ok(Primary::of(token.clone())),
+                _                     => Err(self.err(err_msg))
+            },
+            None        => Err(self.err(err_msg))
+        }
+    }
+
+    fn recursive_node<SubNode>(
+        node: Option<Node<SubNode>>,
+        left: SubNode, op: Token,
+        right: SubNode) -> Option<Node<SubNode>>
+    {
+        match node {
+            None       => Some(Node::new(left, op, Final(right))),
+            Some(node) => {
+                node.replace_right(op, right);
+                Some(node)
+            }
+        }
+    }
+
+    fn err(&self, text: &str) -> LoxError {
+        ParsingError(
+            text.to_string() +
+            &format!("\n\t At position {:?}", self.token_reader.curr_token()).to_string()
+        )
     }
 }
-
-// impl Expr {
-//     pub fn accept(&self, visitor: Visitor) {
-//         match self {
-//             Self::Atomic(_) => visitor.visit_val(self),
-//             Self::Unary(_, _) => visitor.visit_un(self),
-//             Self::Binary(_, _, _) => visitor.visit_bin(self),
-//         }
-//     }
-// }
-
-
-// pub fn parse(tokens: Vec<Token>) -> Expr {   
-//     return Expr::Atomic(LoxValue::Boolean(false));
-// }

@@ -17,8 +17,6 @@ pub enum Token {
 }
 
 impl Token {
-
-
     pub fn from_string(string: String, pos: usize) -> Result<Self, LoxError> {
         if Regex::new(VARIABLE_RE).unwrap().is_match(&string) {
             Ok(Self::IdentifierToken(Identifier::from(string), pos))
@@ -32,6 +30,42 @@ impl Token {
             Err(ParsingError(format!("Did not understand {}", string)))
         }
     }
+
+    pub fn is_eq_or_neq(&self) -> bool {
+        match self {
+            Self::PunctToken(punct, _) => punct.is_eq_or_neq(),
+            _ => false
+        }
+    }
+
+    pub fn is_comparison(&self) -> bool {
+        match self {
+            Self::PunctToken(punct, _) => punct.is_comparison(),
+            _ => false
+        }
+    }
+
+    pub fn is_plus_minus(&self) -> bool {
+        match self {
+            Self::PunctToken(punct, _) => punct.is_plus_minus(),
+            _ => false
+        }
+    }
+
+    pub fn is_mul_div(&self) -> bool {
+        match self {
+            Self::PunctToken(punct, _) => punct.is_mul_div(),
+            _ => false
+        }
+    }
+
+    pub fn is_neg(&self) -> bool {
+        match self {
+            Self::PunctToken(punct, _) => punct.is_neg(),
+            _ => false
+        }
+    }
+
 }
 
 impl fmt::Display for Token {   
