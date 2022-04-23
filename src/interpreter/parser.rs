@@ -1,4 +1,3 @@
-// use super::super::interpreter::parser::expression_structure::*;
 use crate::interpreter::LoxError;
 use crate::interpreter::parser::FinalOrRecursive::Final;
 use super::super::interpreter::text_reader::TextReader;

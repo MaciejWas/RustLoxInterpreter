@@ -7,7 +7,7 @@ use scanner::Scanner;
 
 pub mod tokens;
 pub mod scanner;
-pub mod parser;
+// pub mod parser;
 pub mod errors;
 pub mod text_reader;
 
@@ -34,23 +34,26 @@ impl LoxInterpreter {
 
             match next_line {
                 Ok(0) => {},
-                Ok(_) => {
-                    let response = self.run(buffer.clone());
-                    match response {
-                        Ok(text) => println!("{}", text),
-                        Err(error_message) => {
-                            println!("{}", error_message);
-                            break
-                        }
-                    }
-                },
-                Err(_) => {}
-            }
+                Ok(_) => self.interpret_line_and_respond(buffer.clone()),
+                Err(err) => {self.handle_err(&err); break}
+            };
             buffer.clear();
         }
     }
 
+    fn interpret_line_and_respond(&self, line: String) {
+        let response = self.run(line);
+        match response {
+            Ok(text) => println!("{}", text),
+            Err(error_message) => {
+                println!("{}", error_message);
+            }
+        }
+    }
+
     pub fn run_file(&self, path: &String) {}
+
+    pub fn handle_err(&self, err: &std::io::Error) {}
 
     fn run(&self, statement: String) -> Result<String, LoxError> {
         let scanner_output = Scanner::new(statement).scan();

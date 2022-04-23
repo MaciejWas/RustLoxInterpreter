@@ -1,3 +1,5 @@
+use crate::interpreter::errors::{LoxResult, LoxError};
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum LoxValue {
     Integer(i32),
@@ -28,6 +30,8 @@ pub enum Punct {
     Equal, EqualEqual,
     Greater, GreaterEqual,
     Less, LessEqual,
+
+    Eof
 }
 
 impl Punct {
@@ -73,16 +77,29 @@ pub enum Kwd {
     And, Class, Else, False, Fun, For, If, Nil, Or,
     Print, Return, Super, This, True, Var, While,
   
-    Eof, Comment
-}
+    Comment(String)
+} 
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum Identifier {
-    Identifier(String)
-}
-
-impl Identifier {
-    pub fn from(text: String) -> Self {
-        Self::Identifier(text)
+impl Kwd {
+    pub fn from(string: &String) -> LoxResult<Self> {
+        match string.as_str() {
+            "and"    => Ok(Self::And),
+            "class"  => Ok(Self::Class),
+            "else"   => Ok(Self::Else),
+            "false"  => Ok(Self::False),
+            "fun"    => Ok(Self::Fun),
+            "for"    => Ok(Self::For),
+            "if"     => Ok(Self::If),
+            "print"  => Ok(Self::Print),
+            "return" => Ok(Self::Return),
+            "super"  => Ok(Self::Super),
+            "this"   => Ok(Self::This),
+            "true"   => Ok(Self::True),
+            "var"    => Ok(Self::Var),
+            "while"  => Ok(Self::While),
+            _        => Err(
+                LoxError::TokenizingError(String::from("Failed to build Kwd from string"))
+            )
+        }
     }
 }

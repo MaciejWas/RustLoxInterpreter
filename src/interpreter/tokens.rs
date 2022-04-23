@@ -1,27 +1,39 @@
 use std::fmt;
 use regex::Regex;
-use super::errors::{LoxError::*, LoxError};
-
-pub mod token_types;
+use super::errors::{LoxError::*, LoxError, LoxResult};
 use token_types::*;
 
-const VARIABLE_RE: &str = r"[a-zA-Z_'][a-zA-Z0-9_']*"; 
+pub mod token_types;
+
+const VARIABLE_RE: &str = r"^[a-zA-Z_'][a-zA-Z0-9_']*$"; 
 const NUMBER_RE: &str = r"[0-9]+";
+
+fn is_valid_kwd(string: &String) -> bool {
+    match Kwd::from(string) {
+        Ok(kwd_token) => true,
+        _             => false
+    }
+}
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Token {
     PunctToken(Punct, usize),
     KwdToken(Kwd, usize),
     ValueToken(LoxValue, usize),
-    IdentifierToken(Identifier, usize)
+    IdentifierToken(String, usize)
 }
 
 impl Token {
-    pub fn from_string(string: String, pos: usize) -> Result<Self, LoxError> {
-        if Regex::new(VARIABLE_RE).unwrap().is_match(&string) {
-            Ok(Self::IdentifierToken(Identifier::from(string), pos))
+    pub fn from_string(string: String, pos: usize) -> LoxResult<Self> {
+        if is_valid_kwd(&string) {
+            let kwd = Kwd::from(&string)?;
+            Ok(Self::KwdToken(kwd, pos))
+        } else if Regex::new(VARIABLE_RE).unwrap().is_match(&string) {
+            Ok(Self::IdentifierToken(string, pos))
         } else if Regex::new(NUMBER_RE).unwrap().is_match(&string) {
             Ok(Self::ValueToken(LoxValue::from_int(string.parse().expect("Failed to parse string")), pos))
+        } else if string.starts_with("\"") && string.ends_with("\"") {
+            Ok(Self::ValueToken(LoxValue::from_string(string), pos))
         } else if string.eq("True") {
             Ok(Self::ValueToken(LoxValue::from_bool(true), pos))
         } else if string.eq("False") {
@@ -84,15 +96,9 @@ impl Tokenizable for Punct {
     }
 }
 
-impl Tokenizable for Kwd {
+impl Tokenizable for String {
     fn at(self, pos: usize) -> Token {
-        Token::KwdToken(self, pos)
-    }
-}
-
-impl Tokenizable for Identifier {
-    fn at(self, pos: usize) -> Token {
-        Token::IdentifierToken(self, pos)
+        Token::from_string(self, pos).unwrap() // unsafe lol
     }
 }
 
