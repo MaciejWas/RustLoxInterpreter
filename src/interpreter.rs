@@ -7,7 +7,7 @@ use scanner::Scanner;
 
 pub mod tokens;
 pub mod scanner;
-// pub mod parser;
+pub mod parser;
 pub mod errors;
 pub mod text_reader;
 

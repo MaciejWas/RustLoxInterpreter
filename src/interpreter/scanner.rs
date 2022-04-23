@@ -71,6 +71,7 @@ impl Scanner {
     fn handle_literal(&self) -> LoxResult<Token> {
         let mut buffer = String::new();
         self.reader.back(); // Function is called only after the reader finds the firse letter, so we have to go back
+        let start = self.reader.get_pos();
         loop {
             match self.reader.advance() {
                 Some(c) => {
@@ -84,7 +85,7 @@ impl Scanner {
                 None => break
             }
         }
-        Token::from_string(buffer, self.reader.get_pos())
+        Token::from_string(buffer, start)
     }
 
     fn handle_bang(&self) -> LoxResult<Token> {
