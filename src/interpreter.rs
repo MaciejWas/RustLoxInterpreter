@@ -10,6 +10,7 @@ pub mod scanner;
 pub mod parser;
 pub mod errors;
 pub mod text_reader;
+pub mod token_reader;
 
 fn  print_with_flush<T>(text: T)
 where T: fmt::Display
