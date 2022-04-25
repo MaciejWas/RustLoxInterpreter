@@ -1,69 +1,26 @@
 use crate::interpreter::parser::Token;
 
-pub enum Node<A> {
-    Single(Single<A>);
-    Bi(BiNode<A>),
-    NestedBi(NestedBiNode<A>),
-}
-
 pub struct Single<A> {
-    value: Box<A>
+    value: A
 }
 
-pub struct NestedBiNode<A> {
-    left: Box<A>,
-    op: Token,
-    right: Box<Node<A>>
+pub struct Many<A> {
+    first: A,
+    rest: Vec<(Token, A)>
 }
 
-pub struct BiNode<A> {
-    left: Box<A>,
-    op: Token,
-    right: Box<A>
-}
-
-pub struct UnaryNode<A> {
+pub struct Unary<A> {
    op: Token,
-   right: Box<A>
+   right: A
 }
 
-pub struct LeafNode {
+pub struct Final {
     value: Token
 }
 
-type ExprRule    = Single<EqltyRule>;
-type EqltyRule   = Node<TermRule>;
-type TermRule    = Node<FactorRule>;
-type FactorRule  = Node<UnaryRule>;
-type UnaryRule   = UnaryNode<PrimaryRule>;
-type PrimaryRule = LeafNode;
-
-
-pub struct NodeBuilder<A> {
-    left: Option<A>,
-    op: Option<Token>,
-    right: Option<A>,
-    right_nested: Option<Node<A>>,
-
-    first: A,
-    others: Vec<(Token, A)>
-}
-
-impl <A> NodeBuilder<A> {
-    pub fn new() -> Self {
-        NodeBuilder {
-            left: None,
-            op: None,
-            right: None,
-            right_nested: None,
-
-            first: first_val,
-            others: Vec::new()
-    }
-
-    pub fn left()
-
-    pub fn nest(next_val: A, next_op: Token) -> Self {
-        
-    }
-}
+pub type ExprRule    = Single<EqltyRule>;
+pub type EqltyRule   = Many<TermRule>;
+pub type TermRule    = Many<FactorRule>;
+pub type FactorRule  = Many<UnaryRule>;
+pub type UnaryRule   = Unary<PrimaryRule>;
+pub type PrimaryRule = Final;

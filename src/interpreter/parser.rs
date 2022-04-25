@@ -12,12 +12,6 @@ use std::cell::Cell;
 pub mod expression_structure;
 use expression_structure::*;
 
-fn construct_node(first_node: Node<A>, others: Vec<(Token, A)>) -> Node<A> {
-    
-
-}
-
-
 pub struct Parser {
     text_reader: TextReader,
     token_reader: TokenReader,
@@ -33,25 +27,26 @@ impl Parser {
         }
     }
 
-    fn expression(&self) -> LoxResult<ExprNode> {
-       let eq: EqualityNode = self.equality();
+    fn expression(&self) -> LoxResult<ExprRule> {
+       let eq: EqltyRule = self.equality()?;
        Ok( Single {value: eq} )
     }
 
-    fn equality(&self) -> LoxResult<EqltyNode> {
+    fn equality(&self) -> LoxResult<EqltyRule> {
         let mut comparisons = Vec::new();
-        let first_comp = self.comparison();
+        let first_comp = self.comparison()?;
 
-        while Some(token) = self.token_reader.advance() {
-            if token.matches(EqltyNode) {
-                let next_comp = self.comparison();
-                comparisons.push((token, next_comp) 
+        while let Some(token) = self.token_reader.advance() {
+            if token.is_eq_or_neq() {
+                let next_comp = self.comparison()?;
+                comparisons.push((*token, Box::new(next_comp)));
             } else {
-                break
-            };
+                break;
+            }
         }
 
-        construct_node(first_comp, comparisons)
+        return Ok( Many { first: first_comp, rest: comparisons } );
+
     }
 
 
