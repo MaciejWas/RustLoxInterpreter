@@ -50,7 +50,7 @@ pub struct NodeBuilder<A> {
 }
 
 impl <A> NodeBuilder<A> {
-    pub fn new(first_val: A) -> Self {
+    pub fn new() -> Self {
         NodeBuilder {
             left: None,
             op: None,
@@ -61,7 +61,9 @@ impl <A> NodeBuilder<A> {
             others: Vec::new()
     }
 
+    pub fn left()
+
     pub fn nest(next_val: A, next_op: Token) -> Self {
-    
+        
     }
 }
