@@ -34,21 +34,46 @@ impl Parser {
 
     fn equality(&self) -> LoxResult<EqltyRule> {
         let mut comparisons = Vec::new();
-        let first_comp = self.comparison()?;
+        let first_comp: CompRule = self.comparison()?;
 
         while let Some(token) = self.token_reader.advance() {
             if token.is_eq_or_neq() {
                 let next_comp = self.comparison()?;
-                comparisons.push((*token, Box::new(next_comp)));
+                comparisons.push((*token, next_comp));
             } else {
                 break;
             }
         }
 
-        return Ok( Many { first: first_comp, rest: comparisons } );
+        Ok( Many { first: first_comp, rest: comparisons } )
 
     }
 
+    fn comparison(&self) -> LoxResult<TermRule> {
+        let mut terms = Vec::new();
+        let first_term = self.term()?;
+
+        while let Some(token) = self.token_reader.advance() {
+            if token.is_comparison() {
+                let next_term = self.term()?;
+                terms.push((*token, next_term));
+            }
+        }
+        Ok ( Many { first: first_term, rest: terms } )
+    }
+
+    fn comparison(&self) -> LoxResult<TermRule> {
+        let mut terms = Vec::new();
+        let first_term = self.term()?;
+
+        while let Some(token) = self.token_reader.advance() {
+            if token.is_comparison() {
+                let next_term = self.term()?;
+                terms.push((*token, next_term));
+            }
+        }
+        Ok ( Many { first: first_term, rest: terms } )
+    }
 
     fn err(&self, text: &str) -> LoxError {
         ParsingError(
