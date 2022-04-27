@@ -4,6 +4,8 @@ use std::io;
 
 use errors::LoxError;
 use scanner::Scanner;
+use parser::Parser;
+
 
 pub mod tokens;
 pub mod scanner;
@@ -12,12 +14,15 @@ pub mod errors;
 pub mod text_reader;
 pub mod token_reader;
 
+
 fn  print_with_flush<T>(text: T)
 where T: fmt::Display
 {
     print!("{}", text);
     io::stdout().flush().expect("Flush failed!");
 }
+
+
 
 pub struct LoxInterpreter {}
 
@@ -57,8 +62,12 @@ impl LoxInterpreter {
     pub fn handle_err(&self, err: &std::io::Error) {}
 
     fn run(&self, statement: String) -> Result<String, LoxError> {
-        let scanner_output = Scanner::new(statement).scan();
-        let response = format!("{:?}", scanner_output?.tokens);
+        let scanner_output = Scanner::new(statement.clone())
+                                     .scan()?;
+        let parser_output = Parser::new(scanner_output, statement.clone())
+                                   .parse()?;
+
+        let response = format!("{:?}", parser_output);
         Ok(response)
     }
 }

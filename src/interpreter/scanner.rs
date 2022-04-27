@@ -3,7 +3,6 @@ use super::errors::{LoxResult, LoxError};
 use super::text_reader::TextReader;
 
 pub struct ScannerOutput {
-    pub reader: TextReader,
     pub tokens: Vec<Token>
 }
 
@@ -27,7 +26,6 @@ impl Scanner {
         }
         
         Ok(ScannerOutput{
-            reader: self.reader,
             tokens: tokens
         })
     }

@@ -78,6 +78,13 @@ impl Token {
         }
     }
 
+    pub fn is_eof(&self) -> bool {
+        match self {
+            Self::PunctToken(punct, _) => Punct::Eof == *punct,
+            _ => false
+        }
+    }
+
 }
 
 impl fmt::Display for Token {   

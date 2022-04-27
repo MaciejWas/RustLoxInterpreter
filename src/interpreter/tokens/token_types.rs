@@ -58,7 +58,7 @@ impl Punct {
 
     pub fn is_mul_div(&self) -> bool {
         match self {
-            Self::Dot => true, Self::Slash => true,
+            Self::Star => true, Self::Slash => true,
             _ => false
         }
     }
