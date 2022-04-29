@@ -25,10 +25,12 @@ pub enum Token {
 
 impl Token {
     pub fn from_string(string: String, pos: usize) -> LoxResult<Self> {
-        if is_valid_kwd(&string) {
+        if string.eq("True") {
+            Ok(Self::ValueToken(LoxValue::from_bool(true), pos))
+        } else if string.eq("False") {
+            Ok(Self::ValueToken(LoxValue::from_bool(false), pos))
+        } else if is_valid_kwd(&string) {
             let kwd = Kwd::from(&string)?;
-            if kwd == Kwd::True { return Ok(Self::ValueToken(LoxValue::from_bool(true), pos))}
-            if kwd == Kwd::False { return Ok(Self::ValueToken(LoxValue::from_bool(false), pos))}
             Ok(Self::KwdToken(kwd, pos))
         } else if Regex::new(VARIABLE_RE).unwrap().is_match(&string) {
             Ok(Self::IdentifierToken(string, pos))
@@ -36,10 +38,6 @@ impl Token {
             Ok(Self::ValueToken(LoxValue::from_int(string.parse().expect("Failed to parse string")), pos))
         } else if string.starts_with("\"") && string.ends_with("\"") {
             Ok(Self::ValueToken(LoxValue::from_string(string), pos))
-        } else if string.eq("True") {
-            Ok(Self::ValueToken(LoxValue::from_bool(true), pos))
-        } else if string.eq("False") {
-            Ok(Self::ValueToken(LoxValue::from_bool(false), pos))
         } else {
             Err(ParsingError(format!("Did not understand {}", string)))
         }
@@ -84,6 +82,15 @@ impl Token {
         match self {
             Self::PunctToken(punct, _) => Punct::Eof == *punct,
             _ => false
+        }
+    }
+
+    pub fn pos(&self) -> usize {
+        match self {
+            Self::PunctToken(_, pos) => pos,
+            Self::KwdToken(_, pos)   => pos,
+            Self::ValueToken(_, pos) => pos,
+            Self::Identifier(_, pos) => pos,
         }
     }
 

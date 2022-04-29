@@ -15,18 +15,19 @@ use crate::interpreter::tokens::{
 use crate::interpreter::errors::{eval_err, LoxResult};
 
 
-fn apply(op: Punct, right: LoxValue) -> LoxResult<LoxValue> {
+fn apply(op: Punct, right: LoxValue, pos: usize) -> LoxResult<LoxValue> {
     match op {
         Punct::Minus => match right {
             LoxValue::Integer(x) => Ok(lox_int(-x)),
-            _ => eval_err(format!("applying {:?} on {:?} as an unary operator is not supported", op, right))
+            _ => eval_err(format!("applying {:?} on {:?} as an unary operator is not supported", op, right), pos)
         },
-        _ => eval_err(format!("{:?} is not a valid unary operator", op))
+        _ => eval_err(format!("{:?} is not a valid unary operator", op), pos)
     }
 }
 
 fn eval_fold(acc: LoxResult<LoxValue>, next: (&Token, LoxResult<LoxValue>)) -> LoxResult<LoxValue> {
     let acc: LoxValue = acc?;
+    let curr_pos = next.0.pos();
 
     let (op, val) = next;
     let op: Punct = op.as_punct()?;
@@ -36,15 +37,15 @@ fn eval_fold(acc: LoxResult<LoxValue>, next: (&Token, LoxResult<LoxValue>)) -> L
         Punct::Star => match (acc, val) {
             (LoxValue::Integer(x), LoxValue::Integer(y)) => Ok(LoxValue::Integer(x * y)),
             (LoxValue::Boolean(x), LoxValue::Boolean(y)) => Ok(LoxValue::Boolean(x && y)),
-            _ => eval_err("Shit".to_string())
+            _ => eval_err("Shit".to_string(), curr_pos)
         },
         Punct::Plus => match (acc, val) {
             (LoxValue::Integer(x), LoxValue::Integer(y)) => Ok(LoxValue::Integer(x + y)),
             (LoxValue::Boolean(x), LoxValue::Boolean(y)) => Ok(LoxValue::Boolean(x || y)),
-            _ => eval_err("Shit".to_string())
+            _ => eval_err("Shit".to_string(), curr_pos)
 
         },
-        _ => eval_err("Shit".to_string())
+        _ => eval_err("Shit".to_string(), curr_pos)
     };
 
     return result;
@@ -81,7 +82,7 @@ impl Evaluate for Unary {
 
         if let Some(op) = &self.op {
             let op = op.as_punct()?;
-            return apply(op, val)
+            return apply(op, val, self.op.pos())
         };
 
         Ok(val)

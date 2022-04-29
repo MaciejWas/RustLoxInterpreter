@@ -70,7 +70,6 @@ impl Parser {
     fn abstract_rec_descent<A>(&self, next_rule: fn(&Self) -> LoxResult<A>, token_predicate: fn(&Token) -> bool ) -> LoxResult<Many<A>> where A: std::fmt::Debug{
         let mut xs = Vec::new();
         let x = next_rule(&self)?;
- //       println!("Found match for rec descent: {:?}", x);
 
         while let Some(token) = self.token_reader.advance_if(token_predicate) {
             let x2 = next_rule(&self)?;
@@ -82,9 +81,6 @@ impl Parser {
     }
 
     fn err(&self, text: &str) -> LoxError {
-        ParsingError(
-            text.to_string() +
-            &format!("\n\t At position {:?}", self.token_reader.curr_token()).to_string()
-        )
+        ParsingError(text.to_string(), self.token_reader.curr_token().pos())
     }
 }

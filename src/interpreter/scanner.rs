@@ -57,8 +57,7 @@ impl Scanner {
                     _   => if is_valid_variable_char(c) {
                             return self.handle_literal()
                         } else {
-                            println!("Wtf do you mean by {:?} ??", c); //TODO: this is debuggign message
-                            return Err(LoxError::ParsingError("Unrecognized character".to_string()))
+                            return Err(LoxError::ParsingError(format!("Unrecognized character. Wtf do you mean by {:?}", c), pos))
                         }
                 },
                 None => return Ok(Eof.at(self.reader.get_pos()))
@@ -153,7 +152,7 @@ fn is_valid_variable_char(c: char) -> bool {
 }
 
 fn failed_to_scan_at(pos: usize) -> LoxError {
-    LoxError::ScanningError(format!("Failed to parse. I'm lost at {}", pos))
+    LoxError::ScanningError("Failed to parse".to_string(), pos)
 }
 
 fn is_eof(t: &Token) -> bool {
