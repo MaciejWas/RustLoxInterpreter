@@ -1,6 +1,6 @@
 use std::fmt;
 use regex::Regex;
-use super::errors::{LoxError::*, LoxError, LoxResult};
+use super::errors::{LoxError::*, LoxError, LoxResult, logic_err};
 use token_types::*;
 
 pub mod token_types;
@@ -27,6 +27,8 @@ impl Token {
     pub fn from_string(string: String, pos: usize) -> LoxResult<Self> {
         if is_valid_kwd(&string) {
             let kwd = Kwd::from(&string)?;
+            if kwd == Kwd::True { return Ok(Self::ValueToken(LoxValue::from_bool(true), pos))}
+            if kwd == Kwd::False { return Ok(Self::ValueToken(LoxValue::from_bool(false), pos))}
             Ok(Self::KwdToken(kwd, pos))
         } else if Regex::new(VARIABLE_RE).unwrap().is_match(&string) {
             Ok(Self::IdentifierToken(string, pos))
@@ -82,6 +84,20 @@ impl Token {
         match self {
             Self::PunctToken(punct, _) => Punct::Eof == *punct,
             _ => false
+        }
+    }
+
+    pub fn as_punct(&self) -> LoxResult<Punct> {
+        match self {
+            Self::PunctToken(punct, _) => Ok(punct.clone()),
+            _ => logic_err(format!("{:?} is not punct", self))
+        }
+    }
+
+    pub fn as_lox_value(&self) -> LoxResult<LoxValue> {
+        match self {
+            Self::ValueToken(lox_val, _) => Ok(lox_val.clone()),
+            _ => logic_err(format!("{:?} is not lox value", self))
         }
     }
 

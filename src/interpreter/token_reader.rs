@@ -21,36 +21,26 @@ impl TokenReader {
         }
     }
 
+    
     pub fn advance(&self) -> Option<&Token> {
-        self.next();
-        if let Some(curr) = self.curr_token() {
-            if !curr.is_eof() {
-                return Some(curr);
-            }
+        if let Some(token) = self.peek() {
+            self.step_forward();
+            return Some(token);
         }
 
         None
     }
 
     pub fn advance_if(&self, predicate: fn(&Token) -> bool) -> Option<&Token> {
-        let next = self.advance()?;
-        println!("Trying to advance with {:?}", next);
-        if predicate(next) {
-            return Some(next);
+        let next_token = self.peek()?;
+        if predicate(next_token) {
+            return self.advance();
         }
-        println!("doesnt match predicate");
+
         None
     }
 
-    pub fn curr_token(&self) -> Option<&Token> {
-        self.tokens.get(self.pos.get())
-    }
-
-    fn pos(&self) -> usize {
-        self.pos.get()
-    }
-
-    pub fn next(&self) {
+    fn step_forward(&self) {
         if self.has_started.get() {
             self.pos.set(self.pos.get() + 1);
         } else {
@@ -58,12 +48,15 @@ impl TokenReader {
         }
     }
 
-    pub fn back(&self) {
-        self.pos.set(self.pos.get() - 1);
+    pub fn curr_token(&self) -> Option<&Token> {
+        self.tokens.get(self.pos.get())
     }
 
-    pub fn previous(&self) -> LoxResult<&Token> {
-        self.tokens.get(self.pos.get() - 1)
-            .ok_or(ParsingError("Failed to go back".to_string()))
+    pub fn peek(&self) -> Option<&Token> {
+        if self.has_started.get() {
+            return self.tokens.get(self.pos.get() + 1);  
+        } else {
+            return self.tokens.get(self.pos.get())
+        }
     }
 }

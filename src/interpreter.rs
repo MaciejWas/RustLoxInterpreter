@@ -4,7 +4,11 @@ use std::io;
 
 use errors::LoxError;
 use scanner::Scanner;
-use parser::Parser;
+use parser::{
+    Parser,
+    pretty_printing::PrettyPrint,
+    evaluating::Evaluate
+};
 
 
 pub mod tokens;
@@ -66,8 +70,9 @@ impl LoxInterpreter {
                                      .scan()?;
         let parser_output = Parser::new(scanner_output, statement.clone())
                                    .parse()?;
-
-        let response = format!("{:?}", parser_output);
+    
+        let response = format!("{:?}", parser_output.pretty_print(0));
+        println!("Evaluated: {:?}", parser_output.eval());
         Ok(response)
     }
 }

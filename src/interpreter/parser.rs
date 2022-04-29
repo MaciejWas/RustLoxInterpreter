@@ -8,7 +8,12 @@ use crate::interpreter::tokens::Token;
 use std::cell::Cell;
 
 pub mod expression_structure;
+pub mod pretty_printing;
+pub mod evaluating;
+
 use expression_structure::*;
+use pretty_printing::{PrettyPrint};
+
 
 pub struct Parser {
     text_reader: TextReader,
@@ -33,49 +38,19 @@ impl Parser {
     }
 
     fn equality(&self) -> LoxResult<EqltyRule> {
-        let mut comparisons = Vec::new();
-        let first_comp: CompRule = self.comparison()?;
-
-        while let Some(token) = self.token_reader.advance_if(Token::is_eq_or_neq) {
-            let next_comp = self.comparison()?;
-            comparisons.push((token.clone(), next_comp));
-        }
-
-        Ok( Many { first: first_comp, rest: comparisons } )
+        self.abstract_rec_descent(Self::comparison, Token::is_eq_or_neq)
     }
 
     fn comparison(&self) -> LoxResult<CompRule> {
-        let mut terms = Vec::new();
-        let first_term = self.term()?;
-
-        while let Some(token) = self.token_reader.advance_if(Token::is_comparison) {
-            let next_term = self.term()?;
-            terms.push((token.clone(), next_term));
-        }
-        Ok ( Many { first: first_term, rest: terms } )
+        self.abstract_rec_descent(Self::term, Token::is_comparison)
     }
 
     fn term(&self) -> LoxResult<TermRule> {
-        let mut factors = Vec::new();
-        let first_factor = self.factor()?;
-
-        while let Some(token) = self.token_reader.advance_if(Token::is_plus_minus) {
-            let next_factor = self.factor()?;
-            factors.push((token.clone(), next_factor));
-        }
-        Ok ( Many { first: first_factor, rest: factors } )
+        self.abstract_rec_descent(Self::factor, Token::is_plus_minus)
     }
 
     fn factor(&self) -> LoxResult<FactorRule> {
-        let mut unarys = Vec::new();
-        let first_unary = self.unary()?;
-
-        while let Some(token) = self.token_reader.advance_if(Token::is_mul_div) {
-            let next_unary = self.unary()?;
-            unarys.push((token.clone(), next_unary));
-        }
-
-        Ok ( Many { first: first_unary, rest: unarys } )
+        self.abstract_rec_descent(Self::unary, Token::is_mul_div)
     }
 
     fn unary(&self) -> LoxResult<UnaryRule> {
@@ -92,16 +67,17 @@ impl Parser {
     }
 
 
-    fn abstract_rec_descent<A>(&self, next_rule: fn(&Self) -> LoxResult<A>, token_predicate: fn(&Token) -> bool ) {
+    fn abstract_rec_descent<A>(&self, next_rule: fn(&Self) -> LoxResult<A>, token_predicate: fn(&Token) -> bool ) -> LoxResult<Many<A>> where A: std::fmt::Debug{
         let mut xs = Vec::new();
-        let x = self.next_rule()?;
+        let x = next_rule(&self)?;
+ //       println!("Found match for rec descent: {:?}", x);
 
-        while let Some(token) = self.token_reader.advance_if(Token::is_mul_div) {
-            let next_unary = self.unary()?;
-            unarys.push((token.clone(), next_unary));
+        while let Some(token) = self.token_reader.advance_if(token_predicate) {
+            let x2 = next_rule(&self)?;
+            xs.push((token.clone(), x2));
         }
 
-        Ok ( Many { first: first_unary, rest: unarys } )
+        Ok ( Many { first: x, rest: xs } )
     
     }
 

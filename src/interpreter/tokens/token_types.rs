@@ -1,5 +1,13 @@
 use crate::interpreter::errors::{LoxResult, LoxError};
 
+pub fn lox_int(i: i32) -> LoxValue {
+    LoxValue::Integer(i)
+}
+
+pub fn lox_bool(b: bool) -> LoxValue {
+    LoxValue::Boolean(b)
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum LoxValue {
     Integer(i32),
