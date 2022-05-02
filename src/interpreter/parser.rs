@@ -1,9 +1,11 @@
 use crate::interpreter::LoxError;
-use crate::interpreter::text_reader::TextReader;
-use crate::interpreter::token_reader::TokenReader;
+use crate::interpreter::readers::{TextReader, TokenReader};
 use crate::interpreter::scanner::ScannerOutput;
 use crate::interpreter::errors::{LoxError::*, LoxResult};
-use crate::interpreter::tokens::Token;
+use crate::interpreter::tokens::{
+    Token
+    Punct::*
+};
 
 use std::cell::Cell;
 
@@ -13,7 +15,6 @@ pub mod evaluating;
 
 use expression_structure::*;
 use pretty_printing::{PrettyPrint};
-
 
 pub struct Parser {
     text_reader: TextReader,
@@ -38,19 +39,25 @@ impl Parser {
     }
 
     fn equality(&self) -> LoxResult<EqltyRule> {
-        self.abstract_rec_descent(Self::comparison, Token::is_eq_or_neq)
+        self.abstract_rec_descent(Self::comparison, |t: Token| t.eq_punct(EqualEqual)
+                                                            || t.eq_punct(BandEqual))
     }
 
     fn comparison(&self) -> LoxResult<CompRule> {
-        self.abstract_rec_descent(Self::term, Token::is_comparison)
+        self.abstract_rec_descent(Self::term, |t: Token| t.eq_punct(LessEqual) 
+                                                      || t.eq_punct(GreaterEqual)
+                                                      || t.eq_punct(Less) 
+                                                      || t.eq_punct(Greater))
     }
 
     fn term(&self) -> LoxResult<TermRule> {
-        self.abstract_rec_descent(Self::factor, Token::is_plus_minus)
+        self.abstract_rec_descent(Self::factor, |t: Token| t.eq_punct(Plus)
+                                                        || t.eq_punct(Minus))
     }
 
     fn factor(&self) -> LoxResult<FactorRule> {
-        self.abstract_rec_descent(Self::unary, Token::is_mul_div)
+        self.abstract_rec_descent(Self::unary, |t: Token| t.eq_punct(Star) 
+                                                       || t.eq_punct(Slash))
     }
 
     fn unary(&self) -> LoxResult<UnaryRule> {
@@ -59,13 +66,12 @@ impl Parser {
 
         if first_token.is_neg() {
             let second_token = self.token_reader.advance()
-                .ok_or(self.err("Expected next token."))?;
+                                                .ok_or(self.err("Expected next token."))?;
             return Ok( Unary { op: Some(first_token.clone()), right: second_token.clone()  } );
         }
 
         Ok( Unary { op: None, right: first_token.clone() } )
     }
-
 
     fn abstract_rec_descent<A>(&self, next_rule: fn(&Self) -> LoxResult<A>, token_predicate: fn(&Token) -> bool ) -> LoxResult<Many<A>> where A: std::fmt::Debug{
         let mut xs = Vec::new();
@@ -81,6 +87,11 @@ impl Parser {
     }
 
     fn err(&self, text: &str) -> LoxError {
-        ParsingError(text.to_string(), self.token_reader.curr_token().pos())
+        LoxError {
+            msg: text.to_string(),
+            pos: self.token_reader.curr_token()
+                                  .pos(),
+            err_type: ErrType::ParsingErr
+        }
     }
 }

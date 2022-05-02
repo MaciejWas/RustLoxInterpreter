@@ -56,7 +56,7 @@ impl LoxInterpreter {
         match response {
             Ok(text) => println!("{}", text),
             Err(error_message) => {
-                println!("{}", error_message);
+                println!("{}", error_message.gen_error_msg(&line));
             }
         }
     }

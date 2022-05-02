@@ -1,9 +1,14 @@
 use std::fmt;
 use regex::Regex;
 use super::errors::{LoxError::*, LoxError, LoxResult, logic_err};
-use token_types::*;
 
-pub mod token_types;
+use kwds::Kwd;
+use lox_values::LoxValue;
+use puncts::Punct;
+
+pub mod kwds;
+pub mod lox_values;
+pub mod puncts;
 
 const VARIABLE_RE: &str = r"^[a-zA-Z_'][a-zA-Z0-9_']*$"; 
 const NUMBER_RE: &str = r"[0-9]+";
@@ -108,6 +113,12 @@ impl Token {
         }
     }
 
+    pub fn eq_punct(&self, punct: Punct) -> bool {
+        match self {
+            Self::PunctToken(p, _) => p == punct,
+            _ => false
+        }
+    }
 }
 
 impl fmt::Display for Token {   

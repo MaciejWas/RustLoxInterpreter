@@ -1,27 +1,23 @@
 use super::expression_structure::*;
 use crate::interpreter::tokens::{
-    token_types::{
-        LoxValue,
-        lox_int,
-        lox_bool,
-        Punct,
-    },
+    LoxValue,
+    Punct,
     Token,
     Token::{
         ValueToken, 
         PunctToken
     }
 };
-use crate::interpreter::errors::{eval_err, LoxResult};
+use crate::interpreter::errors::{LoxError, LoxResult};
 
 
 fn apply(op: Punct, right: LoxValue, pos: usize) -> LoxResult<LoxValue> {
     match op {
         Punct::Minus => match right {
             LoxValue::Integer(x) => Ok(lox_int(-x)),
-            _ => eval_err(format!("applying {:?} on {:?} as an unary operator is not supported", op, right), pos)
+            _ => LoxError::eval_err(format!("applying {:?} on {:?} as an unary operator is not supported.", op, right), pos)
         },
-        _ => eval_err(format!("{:?} is not a valid unary operator", op), pos)
+        _ => LoxError::eval_err(format!("{:?} is not a valid unary operator.", op), pos)
     }
 }
 
@@ -37,15 +33,15 @@ fn eval_fold(acc: LoxResult<LoxValue>, next: (&Token, LoxResult<LoxValue>)) -> L
         Punct::Star => match (acc, val) {
             (LoxValue::Integer(x), LoxValue::Integer(y)) => Ok(LoxValue::Integer(x * y)),
             (LoxValue::Boolean(x), LoxValue::Boolean(y)) => Ok(LoxValue::Boolean(x && y)),
-            _ => eval_err("Shit".to_string(), curr_pos)
+            _ => LoxError::eval_err("Shit".to_string(), curr_pos)
         },
         Punct::Plus => match (acc, val) {
             (LoxValue::Integer(x), LoxValue::Integer(y)) => Ok(LoxValue::Integer(x + y)),
             (LoxValue::Boolean(x), LoxValue::Boolean(y)) => Ok(LoxValue::Boolean(x || y)),
-            _ => eval_err("Shit".to_string(), curr_pos)
+            _ => LoxError::eval_err("Shit".to_string(), curr_pos)
 
         },
-        _ => eval_err("Shit".to_string(), curr_pos)
+        _ => LoxError::eval_err("Shit".to_string(), curr_pos)
     };
 
     return result;

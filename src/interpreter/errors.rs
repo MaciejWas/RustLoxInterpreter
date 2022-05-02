@@ -1,12 +1,29 @@
 use std::fmt;
 
+pub enum ErrType {
+    ParsingErr, EvalErr, TokenizingErr, ScanningErr, LogicError
+}
+
 #[derive(Debug)]
 pub enum LoxError {
-    ParsingError(String, usize),
-    EvaluatingError(String, usize),
-    TokenizingError(String, usize),
-    ScanningError(String, usize),
-    LogicError(String, usize),
+    msg: String,
+    err_type: ErrType,
+    pos: usize
+}
+
+impl LoxError {
+    pub fn generate_err_msg(&self, text: &String) -> String {
+        let prelude: String = text[(pos - 10)..(pos+10)]
+            .clone();
+
+        let err_msg: String = format!("{}", self);
+
+        prelude.add(err_msg)
+    }
+
+    pub fn new_err<A>(msg: String, pos: usize, err_type: ErrType) -> LoxResult<A> {
+        Ok({ msg: msg, err_type: err_type, pos: pos })
+    }
 }
 
 impl fmt::Display for LoxError {
@@ -23,13 +40,3 @@ impl fmt::Display for LoxError {
 }
 
 pub type LoxResult<A> = Result<A, LoxError>;
-
-pub fn eval_err<A>(msg: String, pos: usize) -> LoxResult<A> {
-    Err(LoxError::EvaluatingError(msg, pos))
-}
-
-pub fn logic_err<A>(msg: String, pos: usize) -> LoxResult<A> {
-    Err(LoxError::LogicError(msg, pos))
-}
-
-
