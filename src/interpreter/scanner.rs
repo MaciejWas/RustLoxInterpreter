@@ -1,6 +1,6 @@
 use crate::interpreter::errors::ErrType::ScanningErr;
 use crate::interpreter::errors::ErrType::ParsingErr;
-use crate::interpreter::tokens::{Tokenizable, Token, Token::*, Punct, Punct::*, Kwd::*};
+use crate::interpreter::tokens::{Tokenizable, Token, Punct, Punct::*};
 use crate::interpreter::errors::{LoxResult, LoxError};
 use crate::interpreter::readers::TextReader;
 

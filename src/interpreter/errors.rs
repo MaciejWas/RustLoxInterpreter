@@ -1,5 +1,3 @@
-use std::fmt;
-
 #[derive(Debug)]
 pub enum ErrType {
     ParsingErr, EvalErr, TokenizingErr, ScanningErr, LogicError

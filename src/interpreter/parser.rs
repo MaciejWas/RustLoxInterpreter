@@ -3,27 +3,22 @@ use crate::interpreter::tokens::Token;
 use crate::interpreter::errors::LoxResult;
 use crate::interpreter::errors::ErrType::ParsingErr;
 use crate::interpreter::LoxError;
-use crate::interpreter::readers::{TextReader, TokenReader};
+use crate::interpreter::readers::TokenReader;
 use crate::interpreter::scanner::ScannerOutput;
-
-use std::cell::Cell;
 
 pub mod expression_structure;
 pub mod pretty_printing;
 pub mod evaluating;
 
 use expression_structure::*;
-use pretty_printing::{PrettyPrint};
 
 pub struct Parser {
-    text_reader: TextReader,
     token_reader: TokenReader,
 }
 
 impl Parser {
-    pub fn new(scanner_output: ScannerOutput, text: String) -> Self {
+    pub fn new(scanner_output: ScannerOutput) -> Self {
         Parser {
-            text_reader: TextReader::new(text),
             token_reader: TokenReader::new(scanner_output.tokens),
         }
     }

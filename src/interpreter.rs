@@ -67,7 +67,7 @@ impl LoxInterpreter {
     fn run(&self, statement: String) -> Result<String, LoxError> {
         let scanner_output = Scanner::new(statement.clone())
                                      .scan()?;
-        let parser_output = Parser::new(scanner_output, statement.clone())
+        let parser_output = Parser::new(scanner_output)
                                    .parse()?;
     
         let response = format!("{:?}", parser_output.pretty_print(0));
