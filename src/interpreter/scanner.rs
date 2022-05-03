@@ -1,3 +1,4 @@
+use crate::interpreter::errors::ErrType::ScanningErr;
 use crate::interpreter::errors::ErrType::ParsingErr;
 use crate::interpreter::tokens::{Tokenizable, Token, Token::*, Punct, Punct::*, Kwd::*};
 use crate::interpreter::errors::{LoxResult, LoxError};
@@ -23,7 +24,7 @@ impl Scanner {
         loop {
             let token = self.next_token()?;
             tokens.push(token.clone());
-            if token.is_eof() { break }
+            if token.eq_punct(Eof) { break }
         }
         
         Ok(ScannerOutput{
@@ -58,7 +59,7 @@ impl Scanner {
                 _   => if is_valid_variable_char(c) {
                         self.handle_literal()
                     } else {
-                        self.scanning_err(
+                        Self::scanning_err(
                             format!("Unrecognized character. Wtf do you mean by {:?}", c),
                             curr_pos
                         )
@@ -139,7 +140,6 @@ impl Scanner {
     }
 
     fn handle_comment(&self) -> LoxResult<Token> {
-        let comment_pos = self.reader.get_pos();
         self.reader.advance_until_newline();
         self.next_token()
     }
@@ -149,7 +149,7 @@ impl Scanner {
         return Ok(punct.at(self.reader.get_pos()))
     }
 
-    fn scanning_err<A>(text: &str, pos: usize) -> LoxResult<A> {
+    fn scanning_err<A>(text: String, pos: usize) -> LoxResult<A> {
         LoxError::new_err(text.to_string(), pos, ParsingErr)
     }
 }
@@ -159,5 +159,5 @@ fn is_valid_variable_char(c: char) -> bool {
 }
 
 fn unexpected_eof_err<A>(pos: usize) -> LoxResult<A> {
-    LoxError::new_err("Unexpected eof.".to_string(), pos, ErrType::ScanningError)
+    LoxError::new_err("Unexpected eof.".to_string(), pos, ScanningErr)
 }

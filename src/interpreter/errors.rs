@@ -7,9 +7,9 @@ pub enum ErrType {
 
 #[derive(Debug)]
 pub struct LoxError {
-    msg: String,
-    err_type: ErrType,
-    pos: usize
+    pub msg: String,
+    pub err_type: ErrType,
+    pub pos: usize
 }
 
 impl LoxError {
@@ -17,7 +17,7 @@ impl LoxError {
         let prelude: String = text[(self.pos - 10)..(self.pos + 10)]
             .to_string();
 
-        [prelude, self.msg].join("")
+        [prelude, self.msg.clone()].join("")
     }
 
     pub fn new_err<A>(msg: String, pos: usize, err_type: ErrType) -> LoxResult<A> {

@@ -1,12 +1,10 @@
+use crate::interpreter::tokens::Punct::*;
+use crate::interpreter::tokens::Token;
+use crate::interpreter::errors::LoxResult;
 use crate::interpreter::errors::ErrType::ParsingErr;
 use crate::interpreter::LoxError;
 use crate::interpreter::readers::{TextReader, TokenReader};
 use crate::interpreter::scanner::ScannerOutput;
-use crate::interpreter::errors::{LoxError::*, LoxResult};
-use crate::interpreter::tokens::{
-    Token
-    Punct::*
-};
 
 use std::cell::Cell;
 
@@ -65,7 +63,7 @@ impl Parser {
         let first_token = self.token_reader.advance()
             .ok_or(self.err("Expected next token."))?;
 
-        if first_token.is_neg() {
+        if first_token.eq_punct(Minus) {
             let second_token = self.token_reader.advance()
                                                 .ok_or(self.err("Expected next token."))?;
             return Ok( Unary { op: Some(first_token.clone()), right: second_token.clone()  } );
@@ -91,6 +89,7 @@ impl Parser {
         LoxError {
             msg: text.to_string(),
             pos: self.token_reader.curr_token()
+                                  .unwrap()
                                   .pos(),
             err_type: ParsingErr
         }

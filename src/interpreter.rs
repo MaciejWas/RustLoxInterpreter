@@ -51,11 +51,11 @@ impl LoxInterpreter {
     }
 
     fn interpret_line_and_respond(&self, line: String) {
-        let response = self.run(line);
+        let response = self.run(line.clone());
         match response {
             Ok(text) => println!("{}", text),
             Err(error_message) => {
-                println!("{}", error_message.gen_error_msg(&line));
+                println!("{}", error_message.generate_err_msg(&line));
             }
         }
     }

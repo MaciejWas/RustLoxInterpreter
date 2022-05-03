@@ -1,3 +1,6 @@
+use crate::interpreter::errors::ErrType::LogicError;
+use crate::interpreter::LoxError;
+use crate::interpreter::errors::ErrType::TokenizingErr;
 use crate::interpreter::errors::LoxResult;
 use std::fmt;
 use regex::Regex;
@@ -13,13 +16,6 @@ pub mod puncts;
 const VARIABLE_RE: &str = r"^[a-zA-Z_'][a-zA-Z0-9_']*$"; 
 const NUMBER_RE: &str = r"[0-9]+";
 
-fn is_valid_kwd(string: &String) -> bool {
-    match Kwd::from(string, 0) {
-        Ok(kwd_token) => true,
-        _             => false
-    }
-}
-
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Token {
     PunctToken(Punct, usize),
@@ -31,93 +27,56 @@ pub enum Token {
 impl Token {
     pub fn from_string(string: String, pos: usize) -> LoxResult<Self> {
         if string.eq("True") {
-            Ok(Self::ValueToken(LoxValue::from_bool(true), pos))
+            Ok(Self::ValueToken(LoxValue::from(true), pos))
         } else if string.eq("False") {
-            Ok(Self::ValueToken(LoxValue::from_bool(false), pos))
-        } else if is_valid_kwd(&string) {
-            let kwd = Kwd::from(&string)?;
+            Ok(Self::ValueToken(LoxValue::from(false), pos))
+        } else if Kwd::is_valid(&string) {
+            let kwd = Kwd::from(&string, pos)?;
             Ok(Self::KwdToken(kwd, pos))
         } else if Regex::new(VARIABLE_RE).unwrap().is_match(&string) {
             Ok(Self::IdentifierToken(string, pos))
         } else if Regex::new(NUMBER_RE).unwrap().is_match(&string) {
-            Ok(Self::ValueToken(LoxValue::from_int(string.parse().expect("Failed to parse string")), pos))
+            let number: i32 = string.parse().expect("Failed to parse string as number");
+            Ok(Self::ValueToken(LoxValue::from(number), pos))
         } else if string.starts_with("\"") && string.ends_with("\"") {
-            Ok(Self::ValueToken(LoxValue::from_string(string), pos))
+            Ok(Self::ValueToken(LoxValue::from(string), pos))
         } else {
-            Err(ParsingError(format!("Did not understand {}", string)))
-        }
-    }
-
-    pub fn is_eq_or_neq(&self) -> bool {
-        match self {
-            Self::PunctToken(punct, _) => punct.is_eq_or_neq(),
-            _ => false
-        }
-    }
-
-    pub fn is_comparison(&self) -> bool {
-        match self {
-            Self::PunctToken(punct, _) => punct.is_comparison(),
-            _ => false
-        }
-    }
-
-    pub fn is_plus_minus(&self) -> bool {
-        match self {
-            Self::PunctToken(punct, _) => punct.is_plus_minus(),
-            _ => false
-        }
-    }
-
-    pub fn is_mul_div(&self) -> bool {
-        match self {
-            Self::PunctToken(punct, _) => punct.is_mul_div(),
-            _ => false
-        }
-    }
-
-    pub fn is_neg(&self) -> bool {
-        match self {
-            Self::PunctToken(punct, _) => punct.is_neg(),
-            _ => false
-        }
-    }
-
-    pub fn is_eof(&self) -> bool {
-        match self {
-            Self::PunctToken(punct, _) => Punct::Eof == *punct,
-            _ => false
+            Self::tokenizing_err(format!("Did not understand {}", string), pos)
         }
     }
 
     pub fn pos(&self) -> usize {
         match self {
-            Self::PunctToken(_, pos) => pos,
-            Self::KwdToken(_, pos)   => pos,
-            Self::ValueToken(_, pos) => pos,
-            Self::Identifier(_, pos) => pos,
+            Self::PunctToken(_, pos) => *pos,
+            Self::KwdToken(_, pos)   => *pos,
+            Self::ValueToken(_, pos) => *pos,
+            Self::IdentifierToken(_, pos) => *pos,
         }
     }
 
     pub fn as_punct(&self) -> LoxResult<Punct> {
         match self {
             Self::PunctToken(punct, _) => Ok(punct.clone()),
-            _ => logic_err(format!("{:?} is not punct", self))
+            _ => LoxError::new_err(format!("{:?} is not lox value", self), self.pos(), LogicError)
         }
     }
 
     pub fn as_lox_value(&self) -> LoxResult<LoxValue> {
         match self {
             Self::ValueToken(lox_val, _) => Ok(lox_val.clone()),
-            _ => logic_err(format!("{:?} is not lox value", self))
+            _ => LoxError::new_err(format!("{:?} is not lox value", self), self.pos(), LogicError)
         }
     }
 
     pub fn eq_punct(&self, punct: Punct) -> bool {
         match self {
-            Self::PunctToken(p, _) => p == punct,
+            Self::PunctToken(p, _) => p == &punct,
             _ => false
         }
+    }
+
+    pub fn tokenizing_err<A>(text: String, pos: usize) -> LoxResult<A> {
+        LoxError::new_err(text.to_string(), pos, TokenizingErr)
     }
 }
 
