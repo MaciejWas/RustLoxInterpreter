@@ -15,8 +15,7 @@ pub mod tokens;
 pub mod scanner;
 pub mod parser;
 pub mod errors;
-pub mod text_reader;
-pub mod token_reader;
+pub mod readers;
 
 
 fn  print_with_flush<T>(text: T)

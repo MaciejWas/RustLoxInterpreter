@@ -1,10 +1,10 @@
+use crate::interpreter::errors::LoxResult;
 use std::fmt;
 use regex::Regex;
-use super::errors::{LoxError::*, LoxError, LoxResult, logic_err};
 
-use kwds::Kwd;
-use lox_values::LoxValue;
-use puncts::Punct;
+pub use kwds::Kwd;
+pub use lox_values::LoxValue;
+pub use puncts::Punct;
 
 pub mod kwds;
 pub mod lox_values;
@@ -14,7 +14,7 @@ const VARIABLE_RE: &str = r"^[a-zA-Z_'][a-zA-Z0-9_']*$";
 const NUMBER_RE: &str = r"[0-9]+";
 
 fn is_valid_kwd(string: &String) -> bool {
-    match Kwd::from(string) {
+    match Kwd::from(string, 0) {
         Ok(kwd_token) => true,
         _             => false
     }

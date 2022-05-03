@@ -1,3 +1,4 @@
+use crate::interpreter::errors::ErrType::ParsingErr;
 use crate::interpreter::LoxError;
 use crate::interpreter::readers::{TextReader, TokenReader};
 use crate::interpreter::scanner::ScannerOutput;
@@ -39,25 +40,25 @@ impl Parser {
     }
 
     fn equality(&self) -> LoxResult<EqltyRule> {
-        self.abstract_rec_descent(Self::comparison, |t: Token| t.eq_punct(EqualEqual)
-                                                            || t.eq_punct(BandEqual))
+        self.abstract_rec_descent(Self::comparison, |t: &Token| t.eq_punct(EqualEqual)
+                                                             || t.eq_punct(BangEqual))
     }
 
     fn comparison(&self) -> LoxResult<CompRule> {
-        self.abstract_rec_descent(Self::term, |t: Token| t.eq_punct(LessEqual) 
-                                                      || t.eq_punct(GreaterEqual)
-                                                      || t.eq_punct(Less) 
-                                                      || t.eq_punct(Greater))
+        self.abstract_rec_descent(Self::term, |t: &Token| t.eq_punct(LessEqual) 
+                                                       || t.eq_punct(GreaterEqual)
+                                                       || t.eq_punct(Less) 
+                                                       || t.eq_punct(Greater))
     }
 
     fn term(&self) -> LoxResult<TermRule> {
-        self.abstract_rec_descent(Self::factor, |t: Token| t.eq_punct(Plus)
-                                                        || t.eq_punct(Minus))
+        self.abstract_rec_descent(Self::factor, |t: &Token| t.eq_punct(Plus)
+                                                         || t.eq_punct(Minus))
     }
 
     fn factor(&self) -> LoxResult<FactorRule> {
-        self.abstract_rec_descent(Self::unary, |t: Token| t.eq_punct(Star) 
-                                                       || t.eq_punct(Slash))
+        self.abstract_rec_descent(Self::unary, |t: &Token| t.eq_punct(Star) 
+                                                        || t.eq_punct(Slash))
     }
 
     fn unary(&self) -> LoxResult<UnaryRule> {
@@ -91,7 +92,7 @@ impl Parser {
             msg: text.to_string(),
             pos: self.token_reader.curr_token()
                                   .pos(),
-            err_type: ErrType::ParsingErr
+            err_type: ParsingErr
         }
     }
 }

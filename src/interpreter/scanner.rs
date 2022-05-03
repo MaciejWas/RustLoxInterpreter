@@ -1,4 +1,5 @@
-use crate::interpreter::tokens::{Tokenizable, Token, Token::*, token_types::{Punct, Punct::*, Kwd::*}};
+use crate::interpreter::errors::ErrType::ParsingErr;
+use crate::interpreter::tokens::{Tokenizable, Token, Token::*, Punct, Punct::*, Kwd::*};
 use crate::interpreter::errors::{LoxResult, LoxError};
 use crate::interpreter::readers::TextReader;
 
@@ -57,7 +58,10 @@ impl Scanner {
                 _   => if is_valid_variable_char(c) {
                         self.handle_literal()
                     } else {
-                        LoxError::parsing_err(format!("Unrecognized character. Wtf do you mean by {:?}", c), pos);
+                        self.scanning_err(
+                            format!("Unrecognized character. Wtf do you mean by {:?}", c),
+                            curr_pos
+                        )
                     }
             },
             None => Ok(Eof.at(self.reader.get_pos()))
@@ -143,6 +147,10 @@ impl Scanner {
     fn go_back_and_return(&self, punct: Punct) -> LoxResult<Token> {
         self.reader.back().expect("Failed to go back");
         return Ok(punct.at(self.reader.get_pos()))
+    }
+
+    fn scanning_err<A>(text: &str, pos: usize) -> LoxResult<A> {
+        LoxError::new_err(text.to_string(), pos, ParsingErr)
     }
 }
 
