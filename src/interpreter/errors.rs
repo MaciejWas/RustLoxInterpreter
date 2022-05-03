@@ -1,3 +1,5 @@
+use std::cmp::{max, min};
+
 #[derive(Debug)]
 pub enum ErrType {
     ParsingErr, EvalErr, TokenizingErr, ScanningErr, LogicError
@@ -12,10 +14,12 @@ pub struct LoxError {
 
 impl LoxError {
     pub fn generate_err_msg(&self, text: &String) -> String {
-        let prelude: String = text[(self.pos - 10)..(self.pos + 10)]
+        let start = max(self.pos as i32 - 10, 0) as usize;
+        let end = min(self.pos+10, text.len());
+        let prelude: String = text[start..end]
             .to_string();
 
-        [prelude, self.msg.clone()].join("")
+        [prelude, self.msg.clone()].join("\n")
     }
 
     pub fn new_err<A>(msg: String, pos: usize, err_type: ErrType) -> LoxResult<A> {

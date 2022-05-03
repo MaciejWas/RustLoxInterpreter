@@ -14,7 +14,7 @@ pub mod lox_values;
 pub mod puncts;
 
 const VARIABLE_RE: &str = r"^[a-zA-Z_'][a-zA-Z0-9_']*$"; 
-const NUMBER_RE: &str = r"[0-9]+";
+const NUMBER_RE: &str = r"^[0-9]+$";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Token {

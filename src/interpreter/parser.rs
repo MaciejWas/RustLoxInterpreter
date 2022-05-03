@@ -56,12 +56,16 @@ impl Parser {
 
     fn unary(&self) -> LoxResult<UnaryRule> {
         let first_token = self.token_reader.advance()
-            .ok_or(self.err("Expected next token."))?;
+            .ok_or(self.err("Expected next token.".to_string()))?;
 
         if first_token.eq_punct(Minus) {
             let second_token = self.token_reader.advance()
-                                                .ok_or(self.err("Expected next token."))?;
-            return Ok( Unary { op: Some(first_token.clone()), right: second_token.clone()  } );
+                                                .ok_or(self.err("Expected next token.".to_string()))?;
+            if let Token::ValueToken(_, _) = second_token {
+                return Ok( Unary { op: Some(first_token.clone()), right: second_token.clone()  } );
+            }
+
+            self.err(format!("{:?} is not a valid Lox value.", second_token));
         }
 
         Ok( Unary { op: None, right: first_token.clone() } )
@@ -80,7 +84,7 @@ impl Parser {
     
     }
 
-    fn err(&self, text: &str) -> LoxError {
+    fn err(&self, text: String) -> LoxError {
         LoxError {
             msg: text.to_string(),
             pos: self.token_reader.curr_token()

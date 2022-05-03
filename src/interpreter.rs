@@ -1,3 +1,4 @@
+use crate::interpreter::tokens::LoxValue;
 use std::io::Write;
 use std::fmt;
 use std::io;
@@ -69,9 +70,9 @@ impl LoxInterpreter {
                                      .scan()?;
         let parser_output = Parser::new(scanner_output)
                                    .parse()?;
+        println!("{:?}", parser_output.pretty_print(0));
+        let evaluated: LoxValue = parser_output.eval()?;
     
-        let response = format!("{:?}", parser_output.pretty_print(0));
-        println!("Evaluated: {:?}", parser_output.eval());
-        Ok(response)
+        Ok(format!("Evaluated: {:?}", evaluated))
     }
 }
