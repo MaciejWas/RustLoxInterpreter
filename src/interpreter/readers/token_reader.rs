@@ -16,7 +16,6 @@ impl TokenReader {
             has_started: Cell::new(false)
         }
     }
-
     
     pub fn advance(&self) -> Option<&Token> {
         if let Some(token) = self.peek() {

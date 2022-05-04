@@ -28,4 +28,14 @@ impl LoxError {
 }
 
 pub type LoxResult<A> = Result<A, LoxError>;
-pub type ErrBuilder = fn(usize) -> LoxError;
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    use crate::interpreter::LoxError;
+
+    fn it_works() {
+            let e: LoxError = LoxError {msg: "Test message!".to_string(), err_type: TokenizingErr, pos: 30};
+            
+        }
+}

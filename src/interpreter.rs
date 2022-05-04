@@ -26,8 +26,6 @@ where T: fmt::Display
     io::stdout().flush().expect("Flush failed!");
 }
 
-
-
 pub struct LoxInterpreter {}
 
 impl LoxInterpreter {
