@@ -48,3 +48,18 @@ impl TextReader {
         self.pos.get()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use quickcheck::quickcheck;
+    use super::TextReader;
+
+    #[test]
+    fn step_forward() {
+        let text = "sadfasdfdfs";
+        let r = TextReader::new(text.to_string());
+        assert_eq!(r.get_pos(), 0);
+        assert_eq!(r.advance(), Some('s'));
+        assert_eq!(r.get_pos(), 1);
+    }
+}

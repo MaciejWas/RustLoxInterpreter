@@ -1,5 +1,6 @@
 use crate::interpreter::errors::ErrType::TokenizingErr;
 use crate::interpreter::errors::{LoxResult, LoxError};
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Kwd {
     And, Class, Else, False, Fun, For, If, Nil, Or,
@@ -11,7 +12,7 @@ impl Kwd {
     pub fn is_valid(string: &String) -> bool {
         match Self::from(string, 0) {
             Ok(_) => true,
-            _ => false
+            _     => false
         }
     }
 
@@ -35,3 +36,21 @@ impl Kwd {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use quickcheck::quickcheck;
+    use super::Kwd;
+
+    quickcheck! {
+        fn quickcheck_kwd(s: String) -> bool {
+            let result = Kwd::from(&s, 0);
+            if Kwd::is_valid(&s) { 
+                return result.is_ok()
+            } 
+
+            result.is_err()
+        }
+    }
+}
+

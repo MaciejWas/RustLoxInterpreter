@@ -107,3 +107,17 @@ impl Tokenizable for LoxValue {
         Token::ValueToken(self, pos)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use quickcheck::quickcheck;
+    use super::Token;
+
+    quickcheck! {
+        fn quickcheck_token_from(s: String) -> bool {
+            let _ = Token::from_string(s, 0);
+            true
+        }
+    }
+}
+

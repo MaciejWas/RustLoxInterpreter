@@ -7,3 +7,7 @@ edition = "2021"
 
 [dependencies]
 regex = "1"
+quickcheck = "1.0.3"                     # Automatic property based testing with shrinking.
+quickcheck_macros = "1.0.0"              # A macro attribute for quickcheck.
+arbitrary = { version = "1.1.0", features = ["derive"] } 
+                                         # The trait for generating structured data from unstructured data

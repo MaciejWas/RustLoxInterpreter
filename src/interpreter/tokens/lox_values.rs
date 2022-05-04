@@ -2,7 +2,6 @@ use std::fmt::Formatter;
 use std::fmt::Error;
 use std::fmt::Debug;
 
-
 #[derive(Clone, Eq, PartialEq)]
 pub enum LoxValue {
     Integer(i32),
@@ -36,5 +35,20 @@ impl From<bool> for LoxValue {
 impl From<String> for LoxValue {
     fn from(x: String) -> Self {
         LoxValue::String(x)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use quickcheck::quickcheck;
+    use super::LoxValue;
+
+    quickcheck! {
+        fn quickcheck_lox_value(x: i32, y: bool, z: String) -> bool {
+            let _ = LoxValue::from(x);
+            let _ = LoxValue::from(y);
+            let _ = LoxValue::from(z);
+            true
+        }
     }
 }
