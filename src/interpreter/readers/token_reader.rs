@@ -4,23 +4,21 @@ use std::cell::Cell;
 
 pub struct TokenReader {
     tokens: Vec<Token>,
-    pos: Cell<usize>,
-    has_started: Cell<bool>
+    pos: Cell<Option<usize>>,
 }
 
 impl TokenReader {
     pub fn new(tokens: Vec<Token>) -> Self {
         TokenReader {
             tokens: tokens,
-            pos: Cell::new(0),
-            has_started: Cell::new(false)
+            pos: Cell::new(None),
         }
     }
     
     pub fn advance(&self) -> Option<&Token> {
-        if let Some(token) = self.peek() {
+        if self.peek().is_some() {
             self.step_forward();
-            return Some(token);
+            return self.curr_token()
         }
 
         None
@@ -36,22 +34,98 @@ impl TokenReader {
     }
 
     fn step_forward(&self) {
-        if self.has_started.get() {
-            self.pos.set(self.pos.get() + 1);
-        } else {
-            self.has_started.set(true);
+        match self.pos.get() {
+            None => self.pos.set(Some(0)),
+            Some(i) => self.pos.set(Some(i + 1))
         }
     }
 
     pub fn curr_token(&self) -> Option<&Token> {
-        self.tokens.get(self.pos.get())
+        self.tokens.get(self.pos.get()?)
     }
 
     pub fn peek(&self) -> Option<&Token> {
-        if self.has_started.get() {
-            return self.tokens.get(self.pos.get() + 1);  
-        } else {
-            return self.tokens.get(self.pos.get())
+        match self.pos.get() {
+            None => self.tokens.get(0),
+            Some(i) => self.tokens.get(i + 1)
         }
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::interpreter::readers::token_reader::Token;
+    use super::TokenReader;
+
+    fn token_vec(s: &str) -> Vec<Token> {
+        s.chars().map(|c| Token::from_string(format!("char{}", c), 0).unwrap()).collect()
+    }
+
+    #[test]
+    fn step_forward() {
+        let tokens = token_vec("abcdefg");
+        let r = TokenReader::new(tokens.clone());
+
+        assert_eq!(r.curr_token(), None);
+        assert_eq!(r.advance_if(|_token| true), Some(&tokens[0]));
+        assert_eq!(r.curr_token(), Some(&tokens[0]));
+
+        assert_eq!(r.advance_if(|_token| false), None);
+        assert_eq!(r.curr_token(), Some(&tokens[0]));
+
+        assert_eq!(r.advance_if(|_token| true), Some(&tokens[1]));
+        assert_eq!(r.curr_token(), Some(&tokens[1]));
+
+        assert_eq!(r.advance(), Some(&tokens[2]));
+        assert_eq!(r.advance(), Some(&tokens[3]));
+    }
+
+    #[test]
+    fn step_forward_2() {
+        let tokens = token_vec("abcdefg");
+        let r = TokenReader::new(tokens.clone());
+
+        assert_eq!(r.advance(), Some(&tokens[0]));
+        assert_eq!(r.advance(), Some(&tokens[1]));
+        assert_eq!(r.advance(), Some(&tokens[2]));
+        assert_eq!(r.advance(), Some(&tokens[3]));
+
+        assert_eq!(r.curr_token(), Some(&tokens[3]));
+        assert_eq!(r.advance(), Some(&tokens[4]));
+        assert_eq!(r.curr_token(), Some(&tokens[4]));
+    }
+
+    // #[test]
+    // fn adv_newline() {
+    //     let text = "ab\ncdef safwr4r 23424 2qr \n*fdsaf";
+    //     let r = TextReader::new(text.to_string());
+
+    //     r.advance_until_newline();
+    //     assert_eq!(r.get_pos(), 3);
+    //     assert_eq!(r.advance(), Some('c'));
+
+    //     r.advance_until_newline();
+    //     assert_eq!(r.advance(), Some('*'));
+
+    //     r.advance_until_newline();
+    //     assert_eq!(r.advance(), None);
+    // }
+
+    // #[test]
+    // fn go_back() {
+    //     let text = "absadfasd";
+    //     let r = TextReader::new(text.to_string());
+
+    //     assert_eq!(r.advance(), Some('a'));
+    //     assert_eq!(r.get_pos(), 1);
+        
+    //     assert_eq!(r.back(), Some(()));
+    //     assert_eq!(r.back(), None);
+
+    //     assert_eq!(r.get_pos(), 0);
+    //     assert_eq!(r.advance(), Some('a'));
+    //     assert_eq!(r.get_pos(), 1);
+    //     assert_eq!(r.advance(), Some('b'));
+    //     assert_eq!(r.get_pos(), 2);
+    // }
 }
