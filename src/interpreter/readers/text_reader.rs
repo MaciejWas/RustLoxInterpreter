@@ -22,7 +22,7 @@ impl TextReader {
             self.pos.set(prev_pos as usize);
             Some(())
         }
-        }
+    }
     
     pub fn advance(&self) -> Option<char> {
         let curr_pos = self.pos.get();
