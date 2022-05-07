@@ -2,15 +2,17 @@ use crate::interpreter::errors::ErrType::ParsingErr;
 use crate::interpreter::errors::LoxResult;
 use crate::interpreter::readers::TokenReader;
 use crate::interpreter::scanner::ScannerOutput;
+use crate::interpreter::tokens::Equals;
+use crate::interpreter::tokens::Kwd;
 use crate::interpreter::tokens::Punct::*;
 use crate::interpreter::tokens::Token;
 use crate::interpreter::LoxError;
 
 pub mod evaluating;
-pub mod expression_structure;
 pub mod pretty_printing;
+pub mod structure;
 
-use expression_structure::*;
+use structure::*;
 
 pub struct Parser {
     token_reader: TokenReader,
@@ -23,8 +25,37 @@ impl Parser {
         }
     }
 
-    pub fn parse(&self) -> LoxResult<ExprRule> {
-        self.expression()
+    pub fn parse(&self) -> LoxResult<Program> {
+        self.program()
+    }
+
+    fn program(&self) -> LoxResult<Program> {
+        let mut stmts = Vec::new();
+
+        while let Some(token) = self.token_reader.peek() {
+            if token.equals(&Eof) {
+                break;
+            }
+            let stmt = self.statement()?;
+            stmts.push(stmt);
+        }
+
+        Ok(stmts)
+    }
+
+    fn statement(&self) -> LoxResult<Statement> {
+        let first_token = self
+            .token_reader
+            .peek()
+            .ok_or(self.err("Expected next token.".to_string()))?;
+
+        if first_token.equals(&Kwd::Print) {
+            return Ok(Or2::Opt2(PrintStmt {
+                value: self.expression()?,
+            }));
+        }
+
+        Ok(Or2::Opt1(self.expression()?))
     }
 
     fn expression(&self) -> LoxResult<ExprRule> {
@@ -34,29 +65,24 @@ impl Parser {
 
     fn equality(&self) -> LoxResult<EqltyRule> {
         self.abstract_rec_descent(Self::comparison, |t: &Token| {
-            t.eq_punct(EqualEqual) || t.eq_punct(BangEqual)
+            t.equals(&EqualEqual) || t.equals(&BangEqual)
         })
     }
 
     fn comparison(&self) -> LoxResult<CompRule> {
         self.abstract_rec_descent(Self::term, |t: &Token| {
-            t.eq_punct(LessEqual)
-                || t.eq_punct(GreaterEqual)
-                || t.eq_punct(Less)
-                || t.eq_punct(Greater)
+            t.equals(&LessEqual) || t.equals(&GreaterEqual) || t.equals(&Less) || t.equals(&Greater)
         })
     }
 
     fn term(&self) -> LoxResult<TermRule> {
         self.abstract_rec_descent(Self::factor, |t: &Token| {
-            t.eq_punct(Plus) || t.eq_punct(Minus)
+            t.equals(&Plus) || t.equals(&Minus)
         })
     }
 
     fn factor(&self) -> LoxResult<FactorRule> {
-        self.abstract_rec_descent(Self::unary, |t: &Token| {
-            t.eq_punct(Star) || t.eq_punct(Slash)
-        })
+        self.abstract_rec_descent(Self::unary, |t: &Token| t.equals(&Star) || t.equals(&Slash))
     }
 
     fn unary(&self) -> LoxResult<UnaryRule> {
@@ -65,7 +91,7 @@ impl Parser {
             .advance()
             .ok_or(self.err("Expected next token.".to_string()))?;
 
-        if first_token.eq_punct(Minus) {
+        if first_token.equals(&Minus) {
             let second_token = self
                 .token_reader
                 .advance()

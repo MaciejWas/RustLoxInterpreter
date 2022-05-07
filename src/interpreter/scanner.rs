@@ -2,6 +2,7 @@ use crate::interpreter::errors::ErrType::ParsingErr;
 use crate::interpreter::errors::ErrType::ScanningErr;
 use crate::interpreter::errors::{LoxError, LoxResult};
 use crate::interpreter::readers::TextReader;
+use crate::interpreter::tokens::Equals;
 use crate::interpreter::tokens::{Punct, Punct::*, Token, Tokenizable};
 
 pub struct ScannerOutput {
@@ -24,7 +25,7 @@ impl Scanner {
         loop {
             let token = self.next_token()?;
             tokens.push(token.clone());
-            if token.eq_punct(Eof) {
+            if token.equals(&Eof) {
                 break;
             }
         }

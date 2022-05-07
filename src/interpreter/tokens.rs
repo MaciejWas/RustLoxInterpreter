@@ -76,13 +76,6 @@ impl Token {
         }
     }
 
-    pub fn eq_punct(&self, punct: Punct) -> bool {
-        match self {
-            Self::PunctToken(p, _) => p == &punct,
-            _ => false,
-        }
-    }
-
     pub fn tokenizing_err<A>(text: String, pos: usize) -> LoxResult<A> {
         LoxError::new_err(text.to_string(), pos, TokenizingErr)
     }
@@ -91,6 +84,28 @@ impl Token {
 impl fmt::Display for Token {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), std::fmt::Error> {
         write!(f, "[Token: {:?}]", self)
+    }
+}
+
+pub trait Equals<A> {
+    fn equals(&self, a: &A) -> bool;
+}
+
+impl Equals<Kwd> for Token {
+    fn equals(&self, kwd: &Kwd) -> bool {
+        match self {
+            Self::KwdToken(k, _) => k == kwd,
+            _ => false,
+        }
+    }
+}
+
+impl Equals<Punct> for Token {
+    fn equals(&self, punct: &Punct) -> bool {
+        match self {
+            Self::PunctToken(p, _) => p == punct,
+            _ => false,
+        }
     }
 }
 

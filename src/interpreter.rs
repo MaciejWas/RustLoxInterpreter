@@ -48,6 +48,7 @@ impl LoxInterpreter {
     }
 
     fn interpret_line_and_respond(&self, line: String) {
+        let line = line.replace("\\n", "\n");
         let response = self.run(line.clone());
         match response {
             Ok(text) => println!("{}", text),
@@ -64,9 +65,9 @@ impl LoxInterpreter {
     fn run(&self, statement: String) -> Result<String, LoxError> {
         let scanner_output = Scanner::new(statement.clone()).scan()?;
         let parser_output = Parser::new(scanner_output).parse()?;
-        println!("{:?}", parser_output.pretty_print(0));
-        let evaluated: LoxValue = parser_output.eval()?;
-
-        Ok(format!("Evaluated: {:?}", evaluated))
+        // println!("{:?}", parser_output.pretty_print(0));
+        // let evaluated: LoxValue = parser_output.eval()?;
+        Ok(format!("Parsed: {:?}", parser_output))
+        // Ok(format!("Evaluated: {:?}", evaluated))
     }
 }

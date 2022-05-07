@@ -1,4 +1,4 @@
-use super::expression_structure::*;
+use super::structure::*;
 use crate::interpreter::errors::ErrType::LogicError;
 use crate::interpreter::errors::{LoxError, LoxResult};
 use crate::interpreter::tokens::{LoxValue, Punct, Token};

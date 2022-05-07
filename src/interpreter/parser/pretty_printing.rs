@@ -1,4 +1,4 @@
-use super::expression_structure::*;
+use super::structure::*;
 
 fn print_with_pad(text: String, pad: u8) {
     for _i in 0..pad {
