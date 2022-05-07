@@ -31,15 +31,19 @@ impl Parser {
 
     fn program(&self) -> LoxResult<Program> {
         let mut stmts = Vec::new();
+        let fst_stmt = self.statement()?;
+        stmts.push(fst_stmt);
 
-        while let Some(token) = self.token_reader.peek() {
-            if token.equals(&Eof) {
-                break;
-            }
+        while self.token_reader.peek().is_some() {
             let stmt = self.statement()?;
             stmts.push(stmt);
         }
-
+        
+        let last_token = self.token_reader.curr_token().unwrap();
+        if !last_token.equals(&Eof) {
+            return Err(self.err("Expected Eof token but found nothing.".to_string()))
+        }
+        
         Ok(stmts)
     }
 
@@ -134,7 +138,7 @@ impl Parser {
     fn err(&self, text: String) -> LoxError {
         LoxError {
             msg: text.to_string(),
-            pos: self.token_reader.curr_token().unwrap().pos(),
+            pos: match self.token_reader.curr_token() {Some(t) => t.pos(), None => 9999} ,
             err_type: ParsingErr,
         }
     }
