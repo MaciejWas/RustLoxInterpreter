@@ -1,9 +1,9 @@
 use crate::interpreter::errors::ErrType::LogicError;
-use crate::interpreter::LoxError;
 use crate::interpreter::errors::ErrType::TokenizingErr;
 use crate::interpreter::errors::LoxResult;
-use std::fmt;
+use crate::interpreter::LoxError;
 use regex::Regex;
+use std::fmt;
 
 pub use kwds::Kwd;
 pub use lox_values::LoxValue;
@@ -13,7 +13,7 @@ pub mod kwds;
 pub mod lox_values;
 pub mod puncts;
 
-const VARIABLE_RE: &str = r"^[a-zA-Z_'][a-zA-Z0-9_']*$"; 
+const VARIABLE_RE: &str = r"^[a-zA-Z_'][a-zA-Z0-9_']*$";
 const NUMBER_RE: &str = r"^[0-9]+$";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -21,7 +21,7 @@ pub enum Token {
     PunctToken(Punct, usize),
     KwdToken(Kwd, usize),
     ValueToken(LoxValue, usize),
-    IdentifierToken(String, usize)
+    IdentifierToken(String, usize),
 }
 
 impl Token {
@@ -48,7 +48,7 @@ impl Token {
     pub fn pos(&self) -> usize {
         match self {
             Self::PunctToken(_, pos) => *pos,
-            Self::KwdToken(_, pos)   => *pos,
+            Self::KwdToken(_, pos) => *pos,
             Self::ValueToken(_, pos) => *pos,
             Self::IdentifierToken(_, pos) => *pos,
         }
@@ -57,21 +57,29 @@ impl Token {
     pub fn as_punct(&self) -> LoxResult<Punct> {
         match self {
             Self::PunctToken(punct, _) => Ok(punct.clone()),
-            _ => LoxError::new_err(format!("{:?} is not a lox value", self), self.pos(), LogicError)
+            _ => LoxError::new_err(
+                format!("{:?} is not a lox value", self),
+                self.pos(),
+                LogicError,
+            ),
         }
     }
 
     pub fn as_lox_value(&self) -> LoxResult<LoxValue> {
         match self {
             Self::ValueToken(lox_val, _) => Ok(lox_val.clone()),
-            _ => LoxError::new_err(format!("{:?} is not a lox value", self), self.pos(), LogicError)
+            _ => LoxError::new_err(
+                format!("{:?} is not a lox value", self),
+                self.pos(),
+                LogicError,
+            ),
         }
     }
 
     pub fn eq_punct(&self, punct: Punct) -> bool {
         match self {
             Self::PunctToken(p, _) => p == &punct,
-            _ => false
+            _ => false,
         }
     }
 
@@ -80,7 +88,7 @@ impl Token {
     }
 }
 
-impl fmt::Display for Token {   
+impl fmt::Display for Token {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), std::fmt::Error> {
         write!(f, "[Token: {:?}]", self)
     }
@@ -110,8 +118,8 @@ impl Tokenizable for LoxValue {
 
 #[cfg(test)]
 mod tests {
-    use quickcheck::quickcheck;
     use super::Token;
+    use quickcheck::quickcheck;
 
     quickcheck! {
         fn quickcheck_token_from(s: String) -> bool {
@@ -120,4 +128,3 @@ mod tests {
         }
     }
 }
-

@@ -16,7 +16,7 @@ fn main() {
         1 => interpreter.run_prompt(),
         2 => interpreter.run_file(&args[0]),
         _ => {
-            println!("Usage: rlox [script]"); 
+            println!("Usage: rlox [script]");
             std::process::exit(64)
         }
     }

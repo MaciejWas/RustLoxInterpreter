@@ -7,11 +7,17 @@ pub struct TextReader {
 
 impl TextReader {
     pub fn new(source: String) -> Self {
-        TextReader {source: source, pos: Cell::new(0)}
+        TextReader {
+            source: source,
+            pos: Cell::new(0),
+        }
     }
 
     pub fn reset(self) -> Self {
-        TextReader {source: self.source, pos: Cell::new(0)}
+        TextReader {
+            source: self.source,
+            pos: Cell::new(0),
+        }
     }
 
     pub fn back(&self) -> Option<()> {
@@ -23,7 +29,7 @@ impl TextReader {
             Some(())
         }
     }
-    
+
     pub fn advance(&self) -> Option<char> {
         let curr_pos = self.pos.get();
         match self.source.chars().nth(curr_pos) {
@@ -31,15 +37,19 @@ impl TextReader {
                 self.pos.set(curr_pos + 1);
                 Some(c)
             }
-            None => None
+            None => None,
         }
     }
 
     pub fn advance_until_newline(&self) {
         loop {
             match self.advance() {
-                Some(c) => if c == '\n' {break}
-                None    => {break},
+                Some(c) => {
+                    if c == '\n' {
+                        break;
+                    }
+                }
+                None => break,
             }
         }
     }
@@ -97,7 +107,7 @@ mod tests {
 
         assert_eq!(r.advance(), Some('a'));
         assert_eq!(r.get_pos(), 1);
-        
+
         assert_eq!(r.back(), Some(()));
         assert_eq!(r.back(), None);
 

@@ -1,26 +1,21 @@
 use crate::interpreter::tokens::LoxValue;
-use std::io::Write;
 use std::fmt;
 use std::io;
+use std::io::Write;
 
 use errors::LoxError;
+use parser::{evaluating::Evaluate, pretty_printing::PrettyPrint, Parser};
 use scanner::Scanner;
-use parser::{
-    Parser,
-    pretty_printing::PrettyPrint,
-    evaluating::Evaluate
-};
 
-
-pub mod tokens;
-pub mod scanner;
-pub mod parser;
 pub mod errors;
+pub mod parser;
 pub mod readers;
+pub mod scanner;
+pub mod tokens;
 
-
-fn  print_with_flush<T>(text: T)
-where T: fmt::Display
+fn print_with_flush<T>(text: T)
+where
+    T: fmt::Display,
 {
     print!("{}", text);
     io::stdout().flush().expect("Flush failed!");
@@ -41,9 +36,12 @@ impl LoxInterpreter {
             let next_line = stdin.read_line(&mut buffer);
 
             match next_line {
-                Ok(0) => {},
+                Ok(0) => {}
                 Ok(_) => self.interpret_line_and_respond(buffer.clone()),
-                Err(err) => {self.handle_err(&err); break}
+                Err(err) => {
+                    self.handle_err(&err);
+                    break;
+                }
             };
             buffer.clear();
         }
@@ -64,13 +62,11 @@ impl LoxInterpreter {
     pub fn handle_err(&self, err: &std::io::Error) {}
 
     fn run(&self, statement: String) -> Result<String, LoxError> {
-        let scanner_output = Scanner::new(statement.clone())
-                                     .scan()?;
-        let parser_output = Parser::new(scanner_output)
-                                   .parse()?;
+        let scanner_output = Scanner::new(statement.clone()).scan()?;
+        let parser_output = Parser::new(scanner_output).parse()?;
         println!("{:?}", parser_output.pretty_print(0));
         let evaluated: LoxValue = parser_output.eval()?;
-    
+
         Ok(format!("Evaluated: {:?}", evaluated))
     }
 }

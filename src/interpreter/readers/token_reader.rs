@@ -14,11 +14,11 @@ impl TokenReader {
             pos: Cell::new(None),
         }
     }
-    
+
     pub fn advance(&self) -> Option<&Token> {
         if self.peek().is_some() {
             self.step_forward();
-            return self.curr_token()
+            return self.curr_token();
         }
 
         None
@@ -36,7 +36,7 @@ impl TokenReader {
     fn step_forward(&self) {
         match self.pos.get() {
             None => self.pos.set(Some(0)),
-            Some(i) => self.pos.set(Some(i + 1))
+            Some(i) => self.pos.set(Some(i + 1)),
         }
     }
 
@@ -47,18 +47,20 @@ impl TokenReader {
     pub fn peek(&self) -> Option<&Token> {
         match self.pos.get() {
             None => self.tokens.get(0),
-            Some(i) => self.tokens.get(i + 1)
+            Some(i) => self.tokens.get(i + 1),
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::interpreter::readers::token_reader::Token;
     use super::TokenReader;
+    use crate::interpreter::readers::token_reader::Token;
 
     fn token_vec(s: &str) -> Vec<Token> {
-        s.chars().map(|c| Token::from_string(format!("char{}", c), 0).unwrap()).collect()
+        s.chars()
+            .map(|c| Token::from_string(format!("char{}", c), 0).unwrap())
+            .collect()
     }
 
     #[test]
@@ -118,7 +120,7 @@ mod tests {
 
     //     assert_eq!(r.advance(), Some('a'));
     //     assert_eq!(r.get_pos(), 1);
-        
+
     //     assert_eq!(r.back(), Some(()));
     //     assert_eq!(r.back(), None);
 

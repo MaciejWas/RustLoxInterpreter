@@ -1,12 +1,12 @@
-use std::fmt::Formatter;
-use std::fmt::Error;
 use std::fmt::Debug;
+use std::fmt::Error;
+use std::fmt::Formatter;
 
 #[derive(Clone, Eq, PartialEq)]
 pub enum LoxValue {
     Integer(i32),
     Boolean(bool),
-    String(String)
+    String(String),
 }
 
 impl Debug for LoxValue {
@@ -14,11 +14,10 @@ impl Debug for LoxValue {
         match self {
             Self::Integer(x) => write!(f, "Int({})", x),
             Self::Boolean(x) => write!(f, "Bool({})", x),
-            Self::String(x) => write!(f, "String({})", x),   
+            Self::String(x) => write!(f, "String({})", x),
         }
     }
 }
-
 
 impl From<i32> for LoxValue {
     fn from(x: i32) -> Self {
@@ -40,8 +39,8 @@ impl From<String> for LoxValue {
 
 #[cfg(test)]
 mod tests {
-    use quickcheck::quickcheck;
     use super::LoxValue;
+    use quickcheck::quickcheck;
 
     quickcheck! {
         fn quickcheck_lox_value(x: i32, y: bool, z: String) -> bool {

@@ -1,11 +1,11 @@
-use crate::interpreter::errors::ErrType::ScanningErr;
 use crate::interpreter::errors::ErrType::ParsingErr;
-use crate::interpreter::tokens::{Tokenizable, Token, Punct, Punct::*};
-use crate::interpreter::errors::{LoxResult, LoxError};
+use crate::interpreter::errors::ErrType::ScanningErr;
+use crate::interpreter::errors::{LoxError, LoxResult};
 use crate::interpreter::readers::TextReader;
+use crate::interpreter::tokens::{Punct, Punct::*, Token, Tokenizable};
 
 pub struct ScannerOutput {
-    pub tokens: Vec<Token>
+    pub tokens: Vec<Token>,
 }
 
 pub struct Scanner {
@@ -15,7 +15,7 @@ pub struct Scanner {
 impl Scanner {
     pub fn new(source: String) -> Self {
         Scanner {
-            reader: TextReader::new(source)
+            reader: TextReader::new(source),
         }
     }
 
@@ -24,48 +24,48 @@ impl Scanner {
         loop {
             let token = self.next_token()?;
             tokens.push(token.clone());
-            if token.eq_punct(Eof) { break }
+            if token.eq_punct(Eof) {
+                break;
+            }
         }
-        
-        Ok(ScannerOutput{
-            tokens: tokens
-        })
+
+        Ok(ScannerOutput { tokens: tokens })
     }
 
-    fn next_token(
-        &self,
-    ) -> LoxResult<Token> {
+    fn next_token(&self) -> LoxResult<Token> {
         let curr_pos = self.reader.get_pos();
         match self.reader.advance() {
             Some(c) => match c {
-                '('  => Ok(LeftParen.at(curr_pos)),
-                ')'  => Ok(RightParen.at(curr_pos)),
-                '{'  => Ok(LeftBrace.at(curr_pos)),
-                '}'  => Ok(RightBrace.at(curr_pos)),
-                ','  => Ok(Comme.at(curr_pos)),
-                '.'  => Ok(Dot.at(curr_pos)),
-                '-'  => Ok(Minus.at(curr_pos)),
-                '+'  => Ok(Plus.at(curr_pos)),
-                ';'  => Ok(Semicolon.at(curr_pos)),
-                '*'  => Ok(Star.at(curr_pos)),
-                '!'  => self.handle_bang(),
-                '='  => self.handle_eq(),
-                '>'  => self.handle_gr(),
-                '<'  => self.handle_le(),
-                '/'  => self.handle_slash(),
-                ' '  => self.next_token(),
+                '(' => Ok(LeftParen.at(curr_pos)),
+                ')' => Ok(RightParen.at(curr_pos)),
+                '{' => Ok(LeftBrace.at(curr_pos)),
+                '}' => Ok(RightBrace.at(curr_pos)),
+                ',' => Ok(Comme.at(curr_pos)),
+                '.' => Ok(Dot.at(curr_pos)),
+                '-' => Ok(Minus.at(curr_pos)),
+                '+' => Ok(Plus.at(curr_pos)),
+                ';' => Ok(Semicolon.at(curr_pos)),
+                '*' => Ok(Star.at(curr_pos)),
+                '!' => self.handle_bang(),
+                '=' => self.handle_eq(),
+                '>' => self.handle_gr(),
+                '<' => self.handle_le(),
+                '/' => self.handle_slash(),
+                ' ' => self.next_token(),
                 '\t' => self.next_token(),
                 '\n' => self.next_token(),
-                _   => if is_valid_variable_char(c) {
+                _ => {
+                    if is_valid_variable_char(c) {
                         self.handle_literal()
                     } else {
                         Self::scanning_err(
                             format!("Unrecognized character. Wtf do you mean by {:?}", c),
-                            curr_pos
+                            curr_pos,
                         )
                     }
+                }
             },
-            None => Ok(Eof.at(self.reader.get_pos()))
+            None => Ok(Eof.at(self.reader.get_pos())),
         }
     }
 
@@ -80,10 +80,10 @@ impl Scanner {
                         buffer.push(c)
                     } else {
                         self.reader.back();
-                        break
+                        break;
                     }
-                },
-                None => break
+                }
+                None => break,
             }
         }
         Token::from_string(buffer, start)
@@ -93,9 +93,9 @@ impl Scanner {
         match self.reader.advance() {
             Some(c) => match c {
                 '=' => Ok(BangEqual.at(self.reader.get_pos())),
-                _  => self.go_back_and_return(Bang)
-            }
-            None => unexpected_eof_err(self.reader.get_pos())
+                _ => self.go_back_and_return(Bang),
+            },
+            None => unexpected_eof_err(self.reader.get_pos()),
         }
     }
 
@@ -103,9 +103,9 @@ impl Scanner {
         match self.reader.advance() {
             Some(c) => match c {
                 '=' => Ok(EqualEqual.at(self.reader.get_pos())),
-                _  => self.go_back_and_return(Equal)
-            }
-            None => unexpected_eof_err(self.reader.get_pos())
+                _ => self.go_back_and_return(Equal),
+            },
+            None => unexpected_eof_err(self.reader.get_pos()),
         }
     }
 
@@ -113,9 +113,9 @@ impl Scanner {
         match self.reader.advance() {
             Some(c) => match c {
                 '=' => Ok(LessEqual.at(self.reader.get_pos())),
-                _  => self.go_back_and_return(Less)
+                _ => self.go_back_and_return(Less),
             },
-            None => unexpected_eof_err(self.reader.get_pos())
+            None => unexpected_eof_err(self.reader.get_pos()),
         }
     }
 
@@ -123,9 +123,9 @@ impl Scanner {
         match self.reader.advance() {
             Some(c) => match c {
                 '=' => Ok(GreaterEqual.at(self.reader.get_pos())),
-                _   => self.go_back_and_return(Greater),
-            }
-            None => unexpected_eof_err(self.reader.get_pos())
+                _ => self.go_back_and_return(Greater),
+            },
+            None => unexpected_eof_err(self.reader.get_pos()),
         }
     }
 
@@ -133,9 +133,9 @@ impl Scanner {
         match self.reader.advance() {
             Some(c) => match c {
                 '/' => self.handle_comment(),
-                _   => self.go_back_and_return(Slash),
-            }
-            None => unexpected_eof_err(self.reader.get_pos())
+                _ => self.go_back_and_return(Slash),
+            },
+            None => unexpected_eof_err(self.reader.get_pos()),
         }
     }
 
@@ -146,7 +146,7 @@ impl Scanner {
 
     fn go_back_and_return(&self, punct: Punct) -> LoxResult<Token> {
         self.reader.back().expect("Failed to go back");
-        return Ok(punct.at(self.reader.get_pos()))
+        return Ok(punct.at(self.reader.get_pos()));
     }
 
     fn scanning_err<A>(text: String, pos: usize) -> LoxResult<A> {
