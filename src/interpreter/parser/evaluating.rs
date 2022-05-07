@@ -26,29 +26,50 @@ fn eval_fold(acc: LoxResult<LoxValue>, next: (&Token, LoxResult<LoxValue>)) -> L
     let curr_pos = next.0.pos();
 
     let (op, val) = next;
-    let op: Punct = op.as_punct()?;
     let val: LoxValue = val?;
 
-    let acc_repr: String = format!("{:?}", &acc);
-    let op_repr: String = format!("{:?}", &op);
-    let val_repr: String = format!("{:?}", &val);
-        
-    let result = match op {
-        Punct::Star => match (acc, val) {
-            (LoxValue::Integer(x), LoxValue::Integer(y)) => Ok(LoxValue::Integer(x * y)),
-            (LoxValue::Boolean(x), LoxValue::Boolean(y)) => Ok(LoxValue::Boolean(x && y)),
-            _ => eval_err(format!("How do you expect me to perform {:?} on {:?} and {:?}", op_repr, acc_repr, val_repr), curr_pos)
-        },
-        Punct::Plus => match (acc, val) {
+    return binary_operations::handle(op, acc, val, curr_pos);
+}
+
+mod binary_operations {
+    use super::Token;
+    use super::Punct;
+    use super::LoxValue;
+    use super::LoxResult;
+    use super::eval_err;
+
+    pub fn handle(op: &Token, acc: LoxValue, val: LoxValue, curr_pos: usize) -> LoxResult<LoxValue> {
+        match op.as_punct()? {
+            Punct::Star  => star(acc, val, curr_pos),
+            Punct::Plus  => plus(acc, val, curr_pos),
+            Punct::Minus => minus(acc, val, curr_pos),
+            _ => eval_err(format!("Dude, {:?} is not a valid operation!", op), curr_pos)
+        }
+    }
+
+    fn plus(acc: LoxValue, val: LoxValue, pos: usize) -> LoxResult<LoxValue> {
+        match (&acc, &val) {
             (LoxValue::Integer(x), LoxValue::Integer(y)) => Ok(LoxValue::Integer(x + y)),
-            (LoxValue::Boolean(x), LoxValue::Boolean(y)) => Ok(LoxValue::Boolean(x || y)),
-            _ => eval_err(format!("How do you expect me to perform {:?} on {:?} and {:?}", op_repr, acc_repr, val_repr), curr_pos)
+            (LoxValue::Boolean(x), LoxValue::Boolean(y)) => Ok(LoxValue::Boolean(*x || *y)),
+            _ => eval_err(format!("How do you expect me to perform + on {:?} and {:?})", acc, val), pos)
+        }
+    }
+    
+    fn star(acc: LoxValue, val: LoxValue, pos: usize) -> LoxResult<LoxValue> {
+        match (&acc, &val) {
+            (LoxValue::Integer(x), LoxValue::Integer(y)) => Ok(LoxValue::Integer(x * y)),
+            (LoxValue::Boolean(x), LoxValue::Boolean(y)) => Ok(LoxValue::Boolean(*x && *y)),
+            _ => eval_err(format!("How do you expect me to perform * on {:?} and {:?})", acc, val), pos)
+        }
+    }
 
-        },
-        _ => eval_err(format!("Dude, {:?} is not a valid operation!", op), curr_pos)
-    };
-
-    return result;
+    fn minus(acc:LoxValue, val: LoxValue, pos: usize) -> LoxResult<LoxValue> {
+        match (&acc, &val) {
+            (LoxValue::Integer(x), LoxValue::Integer(y)) => Ok(LoxValue::Integer(x - y)),
+            (LoxValue::Boolean(x), LoxValue::Boolean(y)) => Ok(LoxValue::Boolean(*x && !y)),
+            _ => eval_err(format!("How do you expect me to perform - on {:?} and {:?})", acc, val), pos)
+        }
+    }
 }
 
 pub trait Evaluate {
@@ -63,9 +84,7 @@ impl <A> Evaluate for Single<A> where A: Evaluate {
 
 impl <A> Evaluate for Many<A> where A: Evaluate + std::fmt::Debug {
     fn eval(&self) -> LoxResult<LoxValue> {
-
         let first_evaluated = self.first.eval();
-
         self.rest
             .iter()
             .map(|(op, a)| (op, a.eval()))

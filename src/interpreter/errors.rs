@@ -1,6 +1,4 @@
 use std::cmp::{max, min};
-use std::io::Error;
-use quickcheck::quickcheck;
 
 #[derive(Debug)]
 pub enum ErrType {
@@ -40,7 +38,7 @@ pub type LoxResult<A> = Result<A, LoxError>;
 mod tests {
     use super::ErrType;
     use super::LoxError;
-    use super::quickcheck;
+    use quickcheck::quickcheck;
 
     #[test]
     fn test_err_msg() {
