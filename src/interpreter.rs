@@ -4,10 +4,12 @@ use std::io;
 use std::io::Write;
 
 use errors::LoxError;
-use parser::{evaluating::Evaluate, pretty_printing::PrettyPrint, Parser};
+use execute::Evaluate;
+use parser::{pretty_printing::PrettyPrint, Parser};
 use scanner::Scanner;
 
 pub mod errors;
+pub mod execute;
 pub mod parser;
 pub mod readers;
 pub mod scanner;
@@ -65,9 +67,8 @@ impl LoxInterpreter {
     fn run(&self, statement: String) -> Result<String, LoxError> {
         let scanner_output = Scanner::new(statement.clone()).scan()?;
         let parser_output = Parser::new(scanner_output).parse()?;
-        // println!("{:?}", parser_output.pretty_print(0));
-        // let evaluated: LoxValue = parser_output.eval()?;
-        Ok(format!("Parsed: {:?}", parser_output))
-        // Ok(format!("Evaluated: {:?}", evaluated))
+        parser_output.pretty_print(0);
+
+        Ok(format!("Ok!"))
     }
 }

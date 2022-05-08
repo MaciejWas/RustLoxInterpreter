@@ -1,6 +1,6 @@
-use super::structure::*;
 use crate::interpreter::errors::ErrType::LogicError;
 use crate::interpreter::errors::{LoxError, LoxResult};
+use crate::interpreter::parser::structure::*;
 use crate::interpreter::tokens::{LoxValue, Punct, Token};
 
 pub trait Evaluate {

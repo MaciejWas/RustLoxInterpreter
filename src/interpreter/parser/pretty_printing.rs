@@ -11,6 +11,18 @@ pub trait PrettyPrint {
     fn pretty_print(&self, pad: u8);
 }
 
+impl PrettyPrint for Program {
+    fn pretty_print(&self, pad: u8) {
+        println!("Program:");
+        for stmt in self.iter() {
+            match stmt {
+                Or2::Opt1(expr) => expr.pretty_print(pad + 1),
+                Or2::Opt2(print_stmt) => print_stmt.pretty_print(pad + 1),
+            }
+        }
+    }
+}
+
 impl<A> PrettyPrint for Single<A>
 where
     A: PrettyPrint,

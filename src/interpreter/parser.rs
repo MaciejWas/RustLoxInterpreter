@@ -8,7 +8,6 @@ use crate::interpreter::tokens::Punct::*;
 use crate::interpreter::tokens::Token;
 use crate::interpreter::LoxError;
 
-pub mod evaluating;
 pub mod pretty_printing;
 pub mod structure;
 
@@ -35,15 +34,19 @@ impl Parser {
         stmts.push(fst_stmt);
 
         while self.token_reader.peek().is_some() {
-            let stmt = self.statement()?;
-            stmts.push(stmt);
+            self.token_reader.pretty_display_state();
+            stmts.push(self.statement()?);
+            if let Some(next_token) = self.token_reader.peek() {
+                if next_token.equals(&Semicolon) { self.token_reader.advance(); }
+                else { return self.err_result(format!("Expected ; token but found {:?}.", next_token)) }
+            }   
         }
-        
+
         let last_token = self.token_reader.curr_token().unwrap();
         if !last_token.equals(&Eof) {
-            return Err(self.err("Expected Eof token but found nothing.".to_string()))
+            return self.err_result("Expected Eof token but found nothing.".to_string());
         }
-        
+
         Ok(stmts)
     }
 
@@ -90,6 +93,9 @@ impl Parser {
     }
 
     fn unary(&self) -> LoxResult<UnaryRule> {
+        print!("At unary:   ");
+        self.token_reader.pretty_display_state();
+
         let first_token = self
             .token_reader
             .advance()
@@ -110,7 +116,7 @@ impl Parser {
             self.err(format!("{:?} is not a valid Lox value.", second_token));
         }
 
-        Ok(Unary {
+        Ok( Unary {
             op: None,
             right: first_token.clone(),
         })
@@ -135,10 +141,17 @@ impl Parser {
         Ok(Many { first: x, rest: xs })
     }
 
+    fn err_result<A>(&self, text: String) -> LoxResult<A> {
+        Err( self.err(text) )
+    }
+
     fn err(&self, text: String) -> LoxError {
         LoxError {
             msg: text.to_string(),
-            pos: match self.token_reader.curr_token() {Some(t) => t.pos(), None => 9999} ,
+            pos: match self.token_reader.curr_token() {
+                Some(t) => t.pos(),
+                None => 9999,
+            },
             err_type: ParsingErr,
         }
     }

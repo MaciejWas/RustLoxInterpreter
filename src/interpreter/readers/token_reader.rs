@@ -15,6 +15,20 @@ impl TokenReader {
         }
     }
 
+    pub fn pretty_display_state(&self) {
+        match self.pos.get() {
+            None => {
+                println!(" --- Not Started --- | {:?} |  {:?} ", self.tokens.get(0), self.tokens.get(1));
+            },
+            Some(i) => {
+                let fst = if i as i32 - 2 >= 0 { self.tokens.get(i - 2) } else { None };
+                let snd = if i as i32 - 1 >= 0 { self.tokens.get(i - 1) } else { None };
+                
+                println!(" {:?} |  {:?} | --- {:?} --- | {:?} |  {:?} ", fst, snd, self.tokens.get(i), self.tokens.get(i+1), self.tokens.get(i+2));
+            }
+        }
+    }
+
     pub fn advance(&self) -> Option<&Token> {
         if self.peek().is_some() {
             self.step_forward();

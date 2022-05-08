@@ -16,7 +16,7 @@ pub mod puncts;
 const VARIABLE_RE: &str = r"^[a-zA-Z_'][a-zA-Z0-9_']*$";
 const NUMBER_RE: &str = r"^[0-9]+$";
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq)]
 pub enum Token {
     PunctToken(Punct, usize),
     KwdToken(Kwd, usize),
@@ -81,9 +81,14 @@ impl Token {
     }
 }
 
-impl fmt::Display for Token {
+impl fmt::Debug for Token {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), std::fmt::Error> {
-        write!(f, "[Token: {:?}]", self)
+        match self {
+            Self::ValueToken(x, pos) => write!(f, "[{:?}, {:?}]", x, pos),
+            Self::IdentifierToken(x, pos) => write!(f, "[{:?}, {:?}]", x, pos),
+            Self::KwdToken(x, pos) => write!(f, "[{:?}, {:?}]", x, pos),
+            Self::PunctToken(x, pos) => write!(f, "[{:?}, {:?}]", x, pos)
+        }
     }
 }
 
