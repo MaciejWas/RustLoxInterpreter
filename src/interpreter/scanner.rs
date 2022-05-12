@@ -1,11 +1,11 @@
 use crate::interpreter::errors::ErrType::ParsingErr;
 use crate::interpreter::errors::ErrType::ScanningErr;
 use crate::interpreter::errors::{LoxError, LoxResult};
+use crate::interpreter::readers::reader::Reader;
+use crate::interpreter::readers::reader::ReaderBase;
 use crate::interpreter::readers::TextReader;
 use crate::interpreter::tokens::Equals;
 use crate::interpreter::tokens::{Punct, Punct::*, Token, Tokenizable};
-use crate::interpreter::readers::reader::ReaderBase;
-use crate::interpreter::readers::reader::Reader;
 
 pub struct ScannerOutput {
     pub tokens: Vec<Token>,
@@ -37,6 +37,8 @@ impl Scanner {
 
     fn next_token(&self) -> LoxResult<Token> {
         let curr_pos = self.reader.pos();
+        while let Some(c) = self.reader
+
         match self.reader.advance() {
             Some(c) => match c {
                 '(' => Ok(LeftParen.at(curr_pos)),
@@ -74,6 +76,7 @@ impl Scanner {
 
     fn handle_literal(&self) -> LoxResult<Token> {
         let mut buffer = String::new();
+        buffer.push(self.reader.)
         self.reader.back(); // Function is called only after the reader finds the firse letter, so we have to go back
         let start = self.reader.pos();
         loop {

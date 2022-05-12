@@ -87,7 +87,7 @@ impl fmt::Debug for Token {
             Self::ValueToken(x, pos) => write!(f, "[{:?}, {:?}]", x, pos),
             Self::IdentifierToken(x, pos) => write!(f, "[{:?}, {:?}]", x, pos),
             Self::KwdToken(x, pos) => write!(f, "[{:?}, {:?}]", x, pos),
-            Self::PunctToken(x, pos) => write!(f, "[{:?}, {:?}]", x, pos)
+            Self::PunctToken(x, pos) => write!(f, "[{:?}, {:?}]", x, pos),
         }
     }
 }

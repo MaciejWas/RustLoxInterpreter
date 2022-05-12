@@ -1,12 +1,9 @@
-use crate::interpreter::errors::ErrType::ParsingErr;
-use crate::interpreter::errors::LoxResult;
-use crate::interpreter::readers::TokenReader;
-use crate::interpreter::scanner::ScannerOutput;
-use crate::interpreter::tokens::Equals;
-use crate::interpreter::tokens::Kwd;
-use crate::interpreter::tokens::Punct::*;
-use crate::interpreter::tokens::Token;
-use crate::interpreter::LoxError;
+use crate::interpreter::{
+    errors::{ErrType::ParsingErr, LoxError, LoxResult},
+    readers::TokenReader,
+    scanner::ScannerOutput,
+    tokens::{Equals, Kwd, Punct::*, Token},
+};
 
 pub mod pretty_printing;
 pub mod structure;
@@ -30,15 +27,18 @@ impl Parser {
 
     fn program(&self) -> LoxResult<Program> {
         let mut stmts = Vec::new();
-        // let fst_stmt = self.statement()?;
-        // stmts.push(fst_stmt);
 
-        while self.token_reader.peek().is_some() {
+        while let Some(next_token) = self.token_reader.peek() {
             stmts.push(self.statement()?);
-            if let Some(next_token) = self.token_reader.peek() {
-                if next_token.equals(&Semicolon) { self.token_reader.advance(); }
-                else { return self.err_result_at(format!("Expected ; token but found {:?}.", next_token), next_token.pos()) }
-            }   
+            
+            if next_token.equals(&Semicolon) {
+                self.token_reader.advance();
+            } else {
+                return self.err_result_at(
+                    format!("Expected ; token but found {:?}.", next_token),
+                    next_token.pos(),
+                );
+            }
         }
 
         let last_token = self.token_reader.curr_token().unwrap();
@@ -92,33 +92,35 @@ impl Parser {
     }
 
     fn unary(&self) -> LoxResult<UnaryRule> {
-        print!("At unary:   ");
-        self.token_reader.pretty_display_state();
-
         let first_token = self
             .token_reader
             .advance()
             .ok_or(self.err("Expected next token.".to_string()))?;
 
-        if first_token.equals(&Minus) {
-            let second_token = self
-                .token_reader
-                .advance()
-                .ok_or(self.err("Expected next token.".to_string()))?;
-            if let Token::ValueToken(_, _) = second_token {
+        if let Ok(punct) = first_token.as_punct() {
+            if punct.can_be_unary_op() {
+                let second_token = self
+                    .token_reader
+                    .advance()
+                    .ok_or(self.err("Expected next token".to_string()))?;
                 return Ok(Unary {
-                    op: Some(first_token.clone()),
+                    op: None,
                     right: second_token.clone(),
                 });
             }
+        };
 
-            self.err(format!("{:?} is not a valid Lox value.", second_token));
+        if matches!(first_token, ValueToken) || matches!(first_token, IdentifierToken) {
+            return Ok(Unary {
+                op: None,
+                right: first_token.clone(),
+            });
         }
 
-        Ok( Unary {
-            op: None,
-            right: first_token.clone(),
-        })
+        self.err_result(format!(
+            "Token {:?} can't be interpreted as value or identifier",
+            first_token
+        ))
     }
 
     fn abstract_rec_descent<A>(
@@ -141,17 +143,15 @@ impl Parser {
     }
 
     fn err_result<A>(&self, text: String) -> LoxResult<A> {
-        Err( self.err(text) )
+        Err(self.err(text))
     }
 
     fn err_result_at<A>(&self, text: String, pos: usize) -> LoxResult<A> {
-        Err(
-            LoxError {
-                msg: text.to_string(),
-                pos: pos,
-                err_type: ParsingErr,
-            }
-        )
+        Err(LoxError {
+            msg: text.to_string(),
+            pos: pos,
+            err_type: ParsingErr,
+        })
     }
 
     fn err(&self, text: String) -> LoxError {
