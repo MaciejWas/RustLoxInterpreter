@@ -30,11 +30,10 @@ impl Parser {
 
     fn program(&self) -> LoxResult<Program> {
         let mut stmts = Vec::new();
-        let fst_stmt = self.statement()?;
-        stmts.push(fst_stmt);
+        // let fst_stmt = self.statement()?;
+        // stmts.push(fst_stmt);
 
         while self.token_reader.peek().is_some() {
-            self.token_reader.pretty_display_state();
             stmts.push(self.statement()?);
             if let Some(next_token) = self.token_reader.peek() {
                 if next_token.equals(&Semicolon) { self.token_reader.advance(); }

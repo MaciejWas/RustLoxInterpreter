@@ -4,6 +4,7 @@ use crate::interpreter::errors::{LoxError, LoxResult};
 use crate::interpreter::readers::TextReader;
 use crate::interpreter::tokens::Equals;
 use crate::interpreter::tokens::{Punct, Punct::*, Token, Tokenizable};
+use crate::interpreter::readers::reader::ReaderBase;
 
 pub struct ScannerOutput {
     pub tokens: Vec<Token>,
@@ -16,7 +17,7 @@ pub struct Scanner {
 impl Scanner {
     pub fn new(source: String) -> Self {
         Scanner {
-            reader: TextReader::new(source),
+            reader: TextReader::from_vec(source.chars().collect()),
         }
     }
 
@@ -34,7 +35,7 @@ impl Scanner {
     }
 
     fn next_token(&self) -> LoxResult<Token> {
-        let curr_pos = self.reader.get_pos();
+        let curr_pos = self.reader.pos();
         match self.reader.advance() {
             Some(c) => match c {
                 '(' => Ok(LeftParen.at(curr_pos)),
@@ -66,14 +67,14 @@ impl Scanner {
                     }
                 }
             },
-            None => Ok(Eof.at(self.reader.get_pos())),
+            None => Ok(Eof.at(self.reader.pos())),
         }
     }
 
     fn handle_literal(&self) -> LoxResult<Token> {
         let mut buffer = String::new();
         self.reader.back(); // Function is called only after the reader finds the firse letter, so we have to go back
-        let start = self.reader.get_pos();
+        let start = self.reader.pos();
         loop {
             match self.reader.advance() {
                 Some(c) => {
@@ -93,40 +94,40 @@ impl Scanner {
     fn handle_bang(&self) -> LoxResult<Token> {
         match self.reader.advance() {
             Some(c) => match c {
-                '=' => Ok(BangEqual.at(self.reader.get_pos())),
+                '=' => Ok(BangEqual.at(self.reader.pos())),
                 _ => self.go_back_and_return(Bang),
             },
-            None => unexpected_eof_err(self.reader.get_pos()),
+            None => unexpected_eof_err(self.reader.pos()),
         }
     }
 
     fn handle_eq(&self) -> LoxResult<Token> {
         match self.reader.advance() {
             Some(c) => match c {
-                '=' => Ok(EqualEqual.at(self.reader.get_pos())),
+                '=' => Ok(EqualEqual.at(self.reader.pos())),
                 _ => self.go_back_and_return(Equal),
             },
-            None => unexpected_eof_err(self.reader.get_pos()),
+            None => unexpected_eof_err(self.reader.pos()),
         }
     }
 
     fn handle_le(&self) -> LoxResult<Token> {
         match self.reader.advance() {
             Some(c) => match c {
-                '=' => Ok(LessEqual.at(self.reader.get_pos())),
+                '=' => Ok(LessEqual.at(self.reader.pos())),
                 _ => self.go_back_and_return(Less),
             },
-            None => unexpected_eof_err(self.reader.get_pos()),
+            None => unexpected_eof_err(self.reader.pos()),
         }
     }
 
     fn handle_gr(&self) -> LoxResult<Token> {
         match self.reader.advance() {
             Some(c) => match c {
-                '=' => Ok(GreaterEqual.at(self.reader.get_pos())),
+                '=' => Ok(GreaterEqual.at(self.reader.pos())),
                 _ => self.go_back_and_return(Greater),
             },
-            None => unexpected_eof_err(self.reader.get_pos()),
+            None => unexpected_eof_err(self.reader.pos()),
         }
     }
 
@@ -136,7 +137,7 @@ impl Scanner {
                 '/' => self.handle_comment(),
                 _ => self.go_back_and_return(Slash),
             },
-            None => unexpected_eof_err(self.reader.get_pos()),
+            None => unexpected_eof_err(self.reader.pos()),
         }
     }
 
@@ -147,7 +148,7 @@ impl Scanner {
 
     fn go_back_and_return(&self, punct: Punct) -> LoxResult<Token> {
         self.reader.back().expect("Failed to go back");
-        return Ok(punct.at(self.reader.get_pos()));
+        return Ok(punct.at(self.reader.pos()));
     }
 
     fn scanning_err<A>(text: String, pos: usize) -> LoxResult<A> {
@@ -155,8 +156,8 @@ impl Scanner {
     }
 }
 
-fn is_valid_variable_char(c: char) -> bool {
-    c.is_alphanumeric() || c == '\'' || c == '_' || c == '"'
+fn is_valid_variable_char(c: &char) -> bool {
+    c.is_alphanumeric() || *c == '\'' || *c == '_' || *c == '"'
 }
 
 fn unexpected_eof_err<A>(pos: usize) -> LoxResult<A> {
