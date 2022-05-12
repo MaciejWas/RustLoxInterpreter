@@ -21,11 +21,5 @@ pub enum Punct {
     Less,
     LessEqual,
 
-    Eof
-}
-
-impl Punct {
-    pub fn can_be_unary_op(&self) -> bool {
-        matches!(self, Self::Minus)
-    }
+    Eof,
 }

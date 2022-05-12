@@ -53,8 +53,10 @@ impl LoxInterpreter {
         line = line.replace("\\n", "\n");
         line = line.trim().to_string();
 
-        if line.ends_with('\r') {}
+        if line.ends_with('\r') {
 
+        }
+        
         let response = self.run(line.clone());
         match response {
             Ok(text) => println!("{}", text),
