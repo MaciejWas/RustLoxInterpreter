@@ -37,7 +37,7 @@ impl Parser {
             stmts.push(self.statement()?);
             if let Some(next_token) = self.token_reader.peek() {
                 if next_token.equals(&Semicolon) { self.token_reader.advance(); }
-                else { return self.err_result(format!("Expected ; token but found {:?}.", next_token)) }
+                else { return self.err_result_at(format!("Expected ; token but found {:?}.", next_token), next_token.pos()) }
             }   
         }
 
@@ -144,12 +144,22 @@ impl Parser {
         Err( self.err(text) )
     }
 
+    fn err_result_at<A>(&self, text: String, pos: usize) -> LoxResult<A> {
+        Err(
+            LoxError {
+                msg: text.to_string(),
+                pos: pos,
+                err_type: ParsingErr,
+            }
+        )
+    }
+
     fn err(&self, text: String) -> LoxError {
         LoxError {
             msg: text.to_string(),
             pos: match self.token_reader.curr_token() {
                 Some(t) => t.pos(),
-                None => 9999,
+                None => 0,
             },
             err_type: ParsingErr,
         }

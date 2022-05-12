@@ -49,8 +49,14 @@ impl LoxInterpreter {
         }
     }
 
-    fn interpret_line_and_respond(&self, line: String) {
-        let line = line.replace("\\n", "\n");
+    fn interpret_line_and_respond(&self, mut line: String) {
+        line = line.replace("\\n", "\n");
+        line = line.trim().to_string();
+
+        if line.ends_with('\r') {
+
+        }
+        
         let response = self.run(line.clone());
         match response {
             Ok(text) => println!("{}", text),

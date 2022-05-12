@@ -30,6 +30,16 @@ impl ReaderBase<char> for TextReader {
     fn peek(&self) -> Option<&char> {
         self.source.get(self.pos.get())
     }
+
+    fn back(&self) -> Option<()> {
+        let pos = self.pos.get();
+        if pos as i32 - 1 >= 0 {
+            self.pos.set(pos - 1);
+            return Some(())
+        }
+
+        None
+    }
 }
 
 // #[cfg(test)]

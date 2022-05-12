@@ -18,20 +18,23 @@ pub struct LoxError {
 }
 
 impl LoxError {
-    pub fn generate_err_msg(&self, text: &String) -> String {
+    pub fn generate_err_msg(&self, program: &String) -> String {
         let start = max(self.pos as i32 - 10, 0) as usize;
-        let end = min(self.pos + 10, text.len());
+        let end = min(self.pos + 10, program.len());
+
+        let local_pos = self.pos - start;
 
         if start > end {
-            return format!(
+            panic!(
                 "Failed to generate error message. Could not take slice [{}, {}] from {}",
-                start, end, text
+                start, end, program
             );
         }
 
-        let prelude: String = text[start..end].to_string();
-
-        [prelude, self.msg.clone()].join("\n")
+        let prelude: String = program[start..end].trim().to_string();
+        let pointer: String = "-".to_string().repeat(local_pos) + "^";
+        
+        [prelude, pointer, self.msg.clone()].join("\n")
     }
 
     pub fn new_err<A>(msg: String, pos: usize, err_type: ErrType) -> LoxResult<A> {

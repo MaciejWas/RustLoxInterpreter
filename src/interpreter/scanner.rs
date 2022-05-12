@@ -5,6 +5,7 @@ use crate::interpreter::readers::TextReader;
 use crate::interpreter::tokens::Equals;
 use crate::interpreter::tokens::{Punct, Punct::*, Token, Tokenizable};
 use crate::interpreter::readers::reader::ReaderBase;
+use crate::interpreter::readers::reader::Reader;
 
 pub struct ScannerOutput {
     pub tokens: Vec<Token>,
@@ -79,7 +80,7 @@ impl Scanner {
             match self.reader.advance() {
                 Some(c) => {
                     if is_valid_variable_char(c) {
-                        buffer.push(c)
+                        buffer.push(*c)
                     } else {
                         self.reader.back();
                         break;
@@ -142,7 +143,7 @@ impl Scanner {
     }
 
     fn handle_comment(&self) -> LoxResult<Token> {
-        self.reader.advance_until_newline();
+        self.reader.advance_until(|c: &char| *c == '\n');
         self.next_token()
     }
 
