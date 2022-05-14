@@ -84,10 +84,10 @@ impl Token {
 impl fmt::Debug for Token {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), std::fmt::Error> {
         match self {
-            Self::ValueToken(x, pos) => write!(f, "[{:?}, {:?}]", x, pos),
-            Self::IdentifierToken(x, pos) => write!(f, "[{:?}, {:?}]", x, pos),
-            Self::KwdToken(x, pos) => write!(f, "[{:?}, {:?}]", x, pos),
-            Self::PunctToken(x, pos) => write!(f, "[{:?}, {:?}]", x, pos)
+            Self::ValueToken(x, pos) => write!(f, "{:?}", x, ),
+            Self::IdentifierToken(x, pos) => write!(f, "{:?}", x, ),
+            Self::KwdToken(x, pos) => write!(f, "{:?}", x),
+            Self::PunctToken(x, pos) => write!(f, "{:?}", x)
         }
     }
 }
