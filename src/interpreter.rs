@@ -1,10 +1,8 @@
-use crate::interpreter::tokens::LoxValue;
 use std::fmt;
 use std::io;
 use std::io::Write;
 
 use errors::LoxError;
-use execute::Evaluate;
 use parser::{pretty_printing::PrettyPrint, Parser};
 use scanner::Scanner;
 

@@ -1,4 +1,4 @@
-use super::reader::{Reader, ReaderBase};
+use super::reader::{ReaderBase};
 use std::cell::Cell;
 
 pub struct TextReader {
