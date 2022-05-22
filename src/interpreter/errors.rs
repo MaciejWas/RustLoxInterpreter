@@ -33,7 +33,7 @@ impl LoxError {
 
         let prelude: String = program[start..end].trim().to_string();
         let pointer: String = "-".to_string().repeat(local_pos) + "^";
-        
+
         [prelude, pointer, self.msg.clone()].join("\n")
     }
 
