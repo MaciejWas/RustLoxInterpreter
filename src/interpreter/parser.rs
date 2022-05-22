@@ -33,17 +33,16 @@ impl Parser {
         // let fst_stmt = self.statement()?;
         // stmts.push(fst_stmt);
 
-        while self.token_reader.peek().is_some() {
+        while let Some(next_token) = self.token_reader.peek() {           
+            if next_token.equals(&Eof) {
+                break
+            }
+
             stmts.push(self.statement()?);
             if let Some(next_token) = self.token_reader.peek() {
                 if next_token.equals(&Semicolon) { self.token_reader.advance(); }
                 else { return self.err_result_at(format!("Expected ; token but found {:?}.", next_token), next_token.pos()) }
-            }   
-        }
-
-        let last_token = self.token_reader.curr_token().unwrap();
-        if !last_token.equals(&Eof) {
-            return self.err_result("Expected Eof token but found nothing.".to_string());
+            }
         }
 
         Ok(stmts)
@@ -52,7 +51,7 @@ impl Parser {
     fn statement(&self) -> LoxResult<Statement> {
         let first_token = self
             .token_reader
-            .peek()
+            .advance()
             .ok_or(self.err("Expected next token.".to_string()))?;
 
         if first_token.equals(&Kwd::Print) {
@@ -92,9 +91,6 @@ impl Parser {
     }
 
     fn unary(&self) -> LoxResult<UnaryRule> {
-        print!("At unary:   ");
-        self.token_reader.pretty_display_state();
-
         let first_token = self
             .token_reader
             .advance()
