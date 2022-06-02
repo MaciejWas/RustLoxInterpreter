@@ -13,6 +13,7 @@ pub type SubRules<A> = Vec<(Token, A)>;
 pub enum Statement {
     ExprStmt(Expr),
     PrintStmt(Expr),
+    IfStmt(Program),
 }
 
 pub enum Expr {
@@ -141,6 +142,7 @@ impl NamedType for Statement {
         match self {
             Self::PrintStmt(_) => "Statement",
             Self::ExprStmt(_) => "Expression",
+            Self::IfStmt(_) => "IfStatement",
         }
         .to_string()
     }

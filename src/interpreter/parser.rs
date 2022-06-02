@@ -35,7 +35,6 @@ impl Parser {
 
     fn program(&self) -> LoxResult<Program> {
         let mut stmts = Vec::new();
-        println!("LOLOL");
         while self
             .token_reader
             .peek()

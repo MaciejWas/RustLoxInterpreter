@@ -29,10 +29,10 @@ impl PrettyPrint for Statement {
     fn pretty_print(&self, pad: u8) {
         print_with_pad(self.type_name() + ":", pad, true);
         match self {
-            Self::PrintStmt(expr) => expr,
-            Self::ExprStmt(expr) => expr,
+            Self::PrintStmt(expr) => expr.pretty_print(pad + 1),
+            Self::ExprStmt(expr) => expr.pretty_print(pad + 1),
+            Self::IfStmt(prog) => prog.pretty_print(pad + 1),
         }
-        .pretty_print(pad + 1);
     }
 }
 

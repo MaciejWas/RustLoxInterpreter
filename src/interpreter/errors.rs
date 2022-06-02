@@ -21,8 +21,8 @@ pub struct LoxError {
 
 impl LoxError {
     pub fn generate_err_msg(&self, program: &String) -> String {
-        let start = max(self.pos as i32 - 10, 0) as usize;
-        let end = min(self.pos + 10, program.len());
+        let start = max(self.pos as i32 - 20, 0) as usize;
+        let end = min(self.pos + 20, program.len());
 
         let local_pos = self.pos - start;
 
@@ -51,6 +51,7 @@ impl LoxError {
 pub struct ErrBuilder {
     err_type: Option<ErrType>,
     message: Option<String>,
+    while_info: Option<String>,
     pos: Option<usize>,
 }
 
@@ -58,6 +59,7 @@ impl ErrBuilder {
     pub fn new() -> Self {
         ErrBuilder {
             err_type: None,
+            while_info: None,
             message: None,
             pos: None,
         }
@@ -82,6 +84,7 @@ impl ErrBuilder {
         ErrBuilder {
             err_type: None,
             message: None,
+            while_info: None,
             pos: Some(pos),
         }
     }
@@ -104,6 +107,14 @@ impl ErrBuilder {
         self
     }
 
+    pub fn occured_while<A>(mut self, msg: A) -> Self
+    where
+        A: std::fmt::Debug,
+    {
+        self.while_info = Some(format!("{:?}", msg));
+        self
+    }
+
     pub fn expected_found_nothing<E>(mut self, expected: E) -> Self
     where
         E: std::fmt::Debug,
@@ -112,11 +123,17 @@ impl ErrBuilder {
         self
     }
 
-    pub fn build(mut self) -> LoxError {
+    pub fn build(self) -> LoxError {
+        let msg_core = self
+            .message
+            .unwrap_or_else(|| panic!("ErrBuilder failed: message was not supplied"));
+
+        let while_info = self
+            .while_info
+            .map_or("".to_string(), |info| "\n\t While: ".to_string() + &info);
+
         LoxError {
-            msg: self
-                .message
-                .unwrap_or_else(|| panic!("ErrBuilder failed: message was not supplied")),
+            msg: msg_core + &while_info,
             err_type: self
                 .err_type
                 .unwrap_or_else(|| panic!("ErrBuilder failed: err_type was not supplied")),
