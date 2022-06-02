@@ -1,4 +1,4 @@
-use crate::interpreter::errors::{ErrType::ScanningErr, LoxError, LoxResult};
+use crate::interpreter::errors::{ErrBuilder, ErrType::ScanningErr, LoxResult};
 
 use crate::interpreter::readers::{Reader, TextReader};
 use crate::interpreter::tokens::{Equals, Punct::*, Token, Tokenizable};
@@ -33,6 +33,8 @@ impl Scanner {
 
     fn next_token(&self) -> LoxResult<Token> {
         let curr_pos = self.reader.pos();
+        let err_builder = ErrBuilder::at(curr_pos).with_type(ScanningErr);
+
         match self.reader.advance() {
             Some(c) => match c {
                 '(' => Ok(LeftParen.at(curr_pos)),
@@ -57,10 +59,9 @@ impl Scanner {
                     if is_valid_variable_char(c) {
                         self.handle_literal(c)
                     } else {
-                        Self::scanning_err(
-                            format!("Unrecognized character. Wtf do you mean by {:?}", c),
-                            curr_pos,
-                        )
+                        Err(err_builder
+                            .with_message(format!("Unrecognized character `{c}`"))
+                            .build())
                     }
                 }
             },
@@ -73,18 +74,19 @@ impl Scanner {
         buffer.push(*first_char);
         let start = self.reader.pos();
 
+        let is_string_literal = *first_char == '*';
+
         while let Some(c) = self.reader.peek() {
-            if c.is_whitespace() {
+            if !is_valid_variable_char(c) && !is_string_literal {
                 break;
             }
             self.reader.advance();
             buffer.push(*c);
 
             if *c == '"' {
-                break
+                break;
             }
         }
-        println!("Buffer: {}", buffer);
         Token::from_string(buffer, start)
     }
 
@@ -150,10 +152,6 @@ impl Scanner {
         self.reader.advance();
         func()
     }
-
-    fn scanning_err<A>(text: String, pos: usize) -> LoxResult<A> {
-        LoxError::new_err(text.to_string(), pos, ScanningErr)
-    }
 }
 
 fn is_valid_variable_char(c: &char) -> bool {
@@ -161,5 +159,8 @@ fn is_valid_variable_char(c: &char) -> bool {
 }
 
 fn unexpected_eof_err<A>(pos: usize) -> LoxResult<A> {
-    LoxError::new_err("Unexpected eof.".to_string(), pos, ScanningErr)
+    Err(ErrBuilder::at(pos)
+        .with_type(ScanningErr)
+        .expected_but_found("next character", "end of file")
+        .build())
 }

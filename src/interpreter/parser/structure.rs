@@ -1,3 +1,4 @@
+use super::visitor::*;
 use crate::interpreter::parser::Token;
 
 #[derive(Debug)]
@@ -6,43 +7,171 @@ pub enum Or2<A, B> {
     Opt2(B),
 }
 
-#[derive(Debug)]
-pub struct Single<A> {
-    pub value: A,
-}
-
-#[derive(Debug)]
-pub struct Many<A> {
-    pub first: A,
-    pub rest: Vec<(Token, A)>,
-}
-
-#[derive(Debug)]
-pub struct Unary {
-    pub op: Option<Token>,
-    pub right: Token,
-}
-
 pub type Program = Vec<Statement>;
-pub type Statement = Or2<ExprRule, PrintStmt>;
-pub type PrintStmt = Single<ExprRule>;
-pub type ExprRule = Single<EqltyRule>;
-pub type EqltyRule = Many<CompRule>;
-pub type CompRule = Many<TermRule>;
-pub type TermRule = Many<FactorRule>;
-pub type FactorRule = Many<UnaryRule>;
-pub type UnaryRule = Unary;
+pub type SubRules<A> = Vec<(Token, A)>;
 
+pub enum Statement {
+    ExprStmt(Expr),
+    PrintStmt(Expr),
+}
+
+pub enum Expr {
+    Eqlty(Eqlty),
+}
+
+pub struct Eqlty {
+    pub first: Comp,
+    pub rest: SubRules<Comp>,
+}
+
+pub struct Comp {
+    pub first: Term,
+    pub rest: SubRules<Term>,
+}
+
+pub struct Term {
+    pub first: Factor,
+    pub rest: SubRules<Factor>,
+}
+
+pub struct Factor {
+    pub first: Unary,
+    pub rest: SubRules<Unary>,
+}
+
+pub enum Unary {
+    Final(Option<Token>, Token),
+    Recursive(Option<Token>, Box<Expr>),
+}
+
+// #################################
+
+pub trait FromSubRules<A> {
+    fn from_sub(first: A, rest: SubRules<A>) -> Self;
+}
+
+impl FromSubRules<Comp> for Eqlty {
+    fn from_sub(first: Comp, rest: SubRules<Comp>) -> Self {
+        Eqlty {
+            first: first,
+            rest: rest,
+        }
+    }
+}
+
+impl FromSubRules<Term> for Comp {
+    fn from_sub(first: Term, rest: SubRules<Term>) -> Self {
+        Comp {
+            first: first,
+            rest: rest,
+        }
+    }
+}
+
+impl FromSubRules<Factor> for Term {
+    fn from_sub(first: Factor, rest: SubRules<Factor>) -> Self {
+        Term {
+            first: first,
+            rest: rest,
+        }
+    }
+}
+
+impl FromSubRules<Unary> for Factor {
+    fn from_sub(first: Unary, rest: SubRules<Unary>) -> Self {
+        Factor {
+            first: first,
+            rest: rest,
+        }
+    }
+}
+
+// #################################
+
+impl Acceptor for Statement {
+    fn accept<B>(&self, mut v: Box<dyn Visitor<Self, B>>) -> B {
+        v.visit(self)
+    }
+}
+
+impl Acceptor for Expr {
+    fn accept<B>(&self, mut v: Box<dyn Visitor<Self, B>>) -> B {
+        v.visit(self)
+    }
+}
+
+impl Acceptor for Eqlty {
+    fn accept<B>(&self, mut v: Box<dyn Visitor<Self, B>>) -> B {
+        v.visit(self)
+    }
+}
+
+impl Acceptor for Comp {
+    fn accept<B>(&self, mut v: Box<dyn Visitor<Self, B>>) -> B {
+        v.visit(self)
+    }
+}
+
+impl Acceptor for Factor {
+    fn accept<B>(&self, mut v: Box<dyn Visitor<Self, B>>) -> B {
+        v.visit(self)
+    }
+}
+
+impl Acceptor for Term {
+    fn accept<B>(&self, mut v: Box<dyn Visitor<Self, B>>) -> B {
+        v.visit(self)
+    }
+}
+
+impl Acceptor for Unary {
+    fn accept<B>(&self, mut v: Box<dyn Visitor<Self, B>>) -> B {
+        v.visit(self)
+    }
+}
+
+// #################################
 
 pub trait NamedType {
-    fn type_name() -> String;
+    fn type_name(&self) -> String;
 }
 
-impl NamedType for Statement { fn type_name() -> String { "Statement".to_string() } }
-impl NamedType for PrintStmt { fn type_name() -> String { "PrintStmt".to_string() } }
-impl NamedType for ExprRule { fn type_name() -> String { "Expression".to_string() } }
-impl NamedType for EqltyRule { fn type_name() -> String { "Equality".to_string() } }
-impl NamedType for CompRule { fn type_name() -> String { "Comparison".to_string() } }
-impl NamedType for TermRule { fn type_name() -> String { "Term".to_string() } }
-impl NamedType for FactorRule { fn type_name() -> String { "Factor".to_string() } }
-impl NamedType for UnaryRule { fn type_name() -> String { "Unary".to_string() } }
+impl NamedType for Statement {
+    fn type_name(&self) -> String {
+        match self {
+            Self::PrintStmt(_) => "Statement",
+            Self::ExprStmt(_) => "Expression",
+        }
+        .to_string()
+    }
+}
+impl NamedType for Expr {
+    fn type_name(&self) -> String {
+        "Expression".to_string()
+    }
+}
+impl NamedType for Eqlty {
+    fn type_name(&self) -> String {
+        "Equality".to_string()
+    }
+}
+impl NamedType for Comp {
+    fn type_name(&self) -> String {
+        "Comparison".to_string()
+    }
+}
+impl NamedType for Term {
+    fn type_name(&self) -> String {
+        "Term".to_string()
+    }
+}
+impl NamedType for Factor {
+    fn type_name(&self) -> String {
+        "Factor".to_string()
+    }
+}
+impl NamedType for Unary {
+    fn type_name(&self) -> String {
+        "Unary".to_string()
+    }
+}

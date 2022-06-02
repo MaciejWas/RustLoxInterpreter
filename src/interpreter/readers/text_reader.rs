@@ -1,4 +1,4 @@
-use super::reader::{ReaderBase};
+use super::reader::ReaderBase;
 use std::cell::Cell;
 
 pub struct TextReader {
@@ -29,5 +29,12 @@ impl ReaderBase<char> for TextReader {
 
     fn peek(&self) -> Option<&char> {
         self.source.get(self.pos.get())
+    }
+
+    fn previous(&self) -> Option<&char> {
+        if self.pos.get() >= 1 {
+            return self.source.get(self.pos.get() - 1);
+        }
+        None
     }
 }

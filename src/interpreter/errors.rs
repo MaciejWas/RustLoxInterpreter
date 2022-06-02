@@ -1,5 +1,7 @@
 use std::cmp::{max, min};
 
+pub type LoxResult<A> = Result<A, LoxError>;
+
 #[derive(Debug)]
 pub enum ErrType {
     ParsingErr,
@@ -46,7 +48,84 @@ impl LoxError {
     }
 }
 
-pub type LoxResult<A> = Result<A, LoxError>;
+pub struct ErrBuilder {
+    err_type: Option<ErrType>,
+    message: Option<String>,
+    pos: Option<usize>,
+}
+
+impl ErrBuilder {
+    pub fn new() -> Self {
+        ErrBuilder {
+            err_type: None,
+            message: None,
+            pos: None,
+        }
+    }
+
+    pub fn with_type(mut self, err_type: ErrType) -> Self {
+        self.err_type = Some(err_type);
+        self
+    }
+
+    pub fn with_message(mut self, message: String) -> Self {
+        self.message = Some(message);
+        self
+    }
+
+    pub fn with_pos(mut self, pos: usize) -> Self {
+        self.pos = Some(pos);
+        self
+    }
+
+    pub fn at(pos: usize) -> Self {
+        ErrBuilder {
+            err_type: None,
+            message: None,
+            pos: Some(pos),
+        }
+    }
+
+    pub fn expected_but_found<E, F>(mut self, expected: E, found: F) -> Self
+    where
+        E: std::fmt::Debug,
+        F: std::fmt::Debug,
+    {
+        self.message = Some(format!("Expected {:?}, but found {:?}.", expected, found));
+        self
+    }
+
+    pub fn is_not<A, B>(mut self, a: A, b: B) -> Self
+    where
+        A: std::fmt::Debug,
+        B: std::fmt::Debug,
+    {
+        self.message = Some(format!("{:?} is not {:?}.", a, b));
+        self
+    }
+
+    pub fn expected_found_nothing<E>(mut self, expected: E) -> Self
+    where
+        E: std::fmt::Debug,
+    {
+        self.message = Some(format!("Expected {:?}, but found nothing.", expected));
+        self
+    }
+
+    pub fn build(mut self) -> LoxError {
+        LoxError {
+            msg: self
+                .message
+                .unwrap_or_else(|| panic!("ErrBuilder failed: message was not supplied")),
+            err_type: self
+                .err_type
+                .unwrap_or_else(|| panic!("ErrBuilder failed: err_type was not supplied")),
+            pos: self
+                .pos
+                .unwrap_or_else(|| panic!("ErrBuilder failed: pos was not supplied")),
+        }
+    }
+}
 
 #[cfg(test)]
 mod tests {

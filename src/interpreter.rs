@@ -1,3 +1,6 @@
+use crate::interpreter::execute::Executor;
+use crate::interpreter::parser::visitor::Visitor;
+use std::collections::HashMap;
 use std::fmt;
 use std::io;
 use std::io::Write;
@@ -21,14 +24,20 @@ where
     io::stdout().flush().expect("Flush failed!");
 }
 
-pub struct LoxInterpreter {}
+pub struct LoxInterpreter {
+    executor: Executor,
+}
 
 impl LoxInterpreter {
     pub fn new() -> Self {
-        LoxInterpreter {}
+        LoxInterpreter {
+            executor: Executor {
+                state: HashMap::new(),
+            },
+        }
     }
 
-    pub fn run_prompt(&self) {
+    pub fn run_prompt(&mut self) {
         let mut buffer = String::new();
         let stdin = io::stdin();
         loop {
@@ -47,7 +56,7 @@ impl LoxInterpreter {
         }
     }
 
-    fn interpret_line_and_respond(&self, mut line: String) {
+    fn interpret_line_and_respond(&mut self, mut line: String) {
         line = line.replace("\\n", "\n");
         line = line.trim().to_string();
 
@@ -66,10 +75,12 @@ impl LoxInterpreter {
 
     pub fn handle_err(&self, err: &std::io::Error) {}
 
-    fn run(&self, statement: String) -> Result<String, LoxError> {
+    fn run(&mut self, statement: String) -> Result<String, LoxError> {
         let scanner_output = Scanner::new(statement.clone()).scan()?;
         let parser_output = Parser::new(scanner_output).parse()?;
         parser_output.pretty_print(0);
+
+        self.executor.visit(&parser_output)?;
 
         Ok(format!("Ok!"))
     }

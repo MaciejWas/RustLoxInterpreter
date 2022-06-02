@@ -57,11 +57,7 @@ impl Token {
     pub fn as_punct(&self) -> LoxResult<Punct> {
         match self {
             Self::PunctToken(punct, _) => Ok(punct.clone()),
-            _ => LoxError::new_err(
-                format!("{:?} is not a lox value", self),
-                self.pos(),
-                LogicError,
-            ),
+            _ => LoxError::new_err(format!("{:?} is not a punct", self), self.pos(), LogicError),
         }
     }
 
@@ -79,15 +75,34 @@ impl Token {
     pub fn tokenizing_err<A>(text: String, pos: usize) -> LoxResult<A> {
         LoxError::new_err(text.to_string(), pos, TokenizingErr)
     }
+
+    pub fn can_be_unary_op(&self) -> bool {
+        match self {
+            Self::PunctToken(p, _) => [Punct::Minus].contains(p),
+            _ => false,
+        }
+    }
+
+    pub fn satisfies_or<Pred, ErrMaker>(&self, pred: Pred, err: ErrMaker) -> LoxResult<()>
+    where
+        Pred: Fn(&Self) -> bool,
+        ErrMaker: Fn(&Token) -> LoxError,
+    {
+        if pred(self) {
+            return Ok(());
+        }
+
+        Err(err(self))
+    }
 }
 
 impl fmt::Debug for Token {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), std::fmt::Error> {
         match self {
-            Self::ValueToken(x, pos) => write!(f, "{:?}", x,),
-            Self::IdentifierToken(x, pos) => write!(f, "{:?}", x,),
-            Self::KwdToken(x, pos) => write!(f, "{:?}", x),
-            Self::PunctToken(x, pos) => write!(f, "{:?}", x),
+            Self::ValueToken(x, _) => write!(f, "{:?}", x,),
+            Self::IdentifierToken(x, _) => write!(f, "{:?}", x,),
+            Self::KwdToken(x, _) => write!(f, "{:?}", x),
+            Self::PunctToken(x, _) => write!(f, "{:?}", x),
         }
     }
 }
