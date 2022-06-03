@@ -70,6 +70,28 @@ impl Scanner {
     }
 
     fn handle_literal(&self, first_char: &char) -> LoxResult<Token> {
+        if *first_char == '"' {
+            return self.handle_string_literal(first_char);
+        }
+
+        self.handle_var_or_val_literal(first_char)
+    }
+
+    fn handle_string_literal(&self, first_char: &char) -> LoxResult<Token> {
+        let start = self.reader.pos();
+        let mut buffer = String::new();
+        buffer.push(*first_char);
+        while let Some(c) = self.reader.advance() {
+            buffer.push(*c);
+            if *c == '"' {
+                break
+            }
+        }
+
+        Token::from_string(buffer, start)
+    }
+
+    fn handle_var_or_val_literal(&self, first_char: &char) -> LoxResult<Token> {
         let mut buffer = String::new();
         buffer.push(*first_char);
         let start = self.reader.pos();

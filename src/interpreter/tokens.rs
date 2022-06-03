@@ -38,7 +38,7 @@ impl Token {
         } else if Regex::new(NUMBER_RE).unwrap().is_match(&string) {
             let number: i32 = string.parse().expect("Failed to parse string as number");
             Ok(Self::ValueToken(LoxValue::from(number), pos))
-        } else if string.starts_with("\"") && string.ends_with("\"") {
+        } else if string.starts_with('\"') && string.ends_with('\"') {
             Ok(Self::ValueToken(LoxValue::from(string), pos))
         } else {
             Self::tokenizing_err(format!("Did not understand {}", string), pos)

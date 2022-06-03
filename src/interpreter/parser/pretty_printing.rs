@@ -31,7 +31,10 @@ impl PrettyPrint for Statement {
         match self {
             Self::PrintStmt(expr) => expr.pretty_print(pad + 1),
             Self::ExprStmt(expr) => expr.pretty_print(pad + 1),
-            Self::IfStmt(prog) => prog.pretty_print(pad + 1),
+            Self::IfStmt(cond, prog) => {
+                cond.pretty_print(pad + 1);
+                prog.pretty_print(pad + 1)
+            }
         }
     }
 }

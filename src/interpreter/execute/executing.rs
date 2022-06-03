@@ -30,8 +30,10 @@ impl Visitor<Statement, LoxResult<()>> for Executor {
                 let evaluated = self.visit(expr)?;
                 println!("From print statement: `{:?}`", evaluated);
             }
-            Statement::IfStmt(program) => {
-                self.visit(program);
+            Statement::IfStmt(cond, program) => {
+                if LoxValue::Boolean(true) == self.visit(cond)? {
+                    self.visit(program);
+                }
             }
         }
         Ok(())

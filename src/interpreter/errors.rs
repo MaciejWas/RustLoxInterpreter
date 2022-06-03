@@ -2,7 +2,7 @@ use std::cmp::{max, min};
 
 pub type LoxResult<A> = Result<A, LoxError>;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum ErrType {
     ParsingErr,
     EvalErr,
@@ -12,7 +12,22 @@ pub enum ErrType {
     InterpreterError,
 }
 
-#[derive(Debug)]
+fn find_line_with_pos(text: &String, pos: usize) -> (String, usize) {
+
+    let mut cum = 0;
+    for line in text.splitn(100000, '\n') {
+        cum += line.len();
+        println!("{}", line);
+        println!("{} vs {} / {}", pos, cum, text.len());
+        if cum > pos {
+            return (line.to_string(), pos - cum)
+        }
+    };
+
+    panic!("Line with pos not found.")
+}
+
+#[derive(Clone, Debug)]
 pub struct LoxError {
     pub msg: String,
     pub err_type: ErrType,
@@ -21,22 +36,9 @@ pub struct LoxError {
 
 impl LoxError {
     pub fn generate_err_msg(&self, program: &String) -> String {
-        let start = max(self.pos as i32 - 20, 0) as usize;
-        let end = min(self.pos + 20, program.len());
-
-        let local_pos = self.pos - start;
-
-        if start > end {
-            panic!(
-                "Failed to generate error message. Could not take slice [{}, {}] from {}",
-                start, end, program
-            );
-        }
-
-        let prelude: String = program[start..end].trim().to_string();
-        let pointer: String = "-".to_string().repeat(local_pos) + "^";
-
-        [prelude, pointer, self.msg.clone()].join("\n")
+        let (line, line_pos) = find_line_with_pos(program, self.pos);
+        let pointer: String = "-".to_string().repeat(line_pos) + "^";
+        return [line, pointer, self.msg.clone()].join("\n")
     }
 
     pub fn new_err<A>(msg: String, pos: usize, err_type: ErrType) -> LoxResult<A> {
@@ -48,6 +50,7 @@ impl LoxError {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct ErrBuilder {
     err_type: Option<ErrType>,
     message: Option<String>,
@@ -107,7 +110,7 @@ impl ErrBuilder {
         self
     }
 
-    pub fn occured_while<A>(mut self, msg: A) -> Self
+    pub fn while_<A>(mut self, msg: A) -> Self
     where
         A: std::fmt::Debug,
     {
