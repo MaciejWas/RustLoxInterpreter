@@ -10,8 +10,7 @@ if (3==3) {
 };
 
 if (1==2) {
-    print "You should NOT see this!!!!!!!!!!!!!!!!!!!!!!!!!";
+    print "You should NOT see this!!!!!!!!!!!!!!!!!!!!!!!!!"; if () + 3
 };
-#;
 print "FSADFASDFSADF"
 print 3333;
