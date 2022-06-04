@@ -1,4 +1,6 @@
-use std::cmp::{max, min};
+use crate::interpreter::errors::position::Position;
+
+pub mod position;
 
 pub type LoxResult<A> = Result<A, LoxError>;
 
@@ -12,41 +14,23 @@ pub enum ErrType {
     InterpreterError,
 }
 
-fn find_line_with_pos(text: &String, pos: usize) -> (String, usize) {
-
-    let mut cum = 0;
-    for line in text.splitn(100000, '\n') {
-        cum += line.len();
-        println!("{}", line);
-        println!("{} vs {} / {}", pos, cum, text.len());
-        if cum > pos {
-            return (line.to_string(), pos - cum)
-        }
-    };
-
-    panic!("Line with pos not found.")
-}
-
 #[derive(Clone, Debug)]
 pub struct LoxError {
     pub msg: String,
     pub err_type: ErrType,
-    pub pos: usize,
+    pub pos: Position,
 }
 
 impl LoxError {
     pub fn generate_err_msg(&self, program: &String) -> String {
-        let (line, line_pos) = find_line_with_pos(program, self.pos);
-        let pointer: String = "-".to_string().repeat(line_pos) + "^";
-        return [line, pointer, self.msg.clone()].join("\n")
-    }
-
-    pub fn new_err<A>(msg: String, pos: usize, err_type: ErrType) -> LoxResult<A> {
-        Err(Self {
-            msg: msg,
-            err_type: err_type,
-            pos: pos,
-        })
+        let line = program.lines().nth(self.pos.line).unwrap_or_else(|| {
+            panic!(
+                "Failed to generate error message: line {} is out of range.",
+                self.pos.line
+            )
+        });
+        let pointer: String = "-".to_string().repeat(self.pos.line_pos) + "^";
+        return [line, &pointer, &self.msg].join("\n");
     }
 }
 
@@ -55,7 +39,7 @@ pub struct ErrBuilder {
     err_type: Option<ErrType>,
     message: Option<String>,
     while_info: Option<String>,
-    pos: Option<usize>,
+    pos: Option<Position>,
 }
 
 impl ErrBuilder {
@@ -78,12 +62,12 @@ impl ErrBuilder {
         self
     }
 
-    pub fn with_pos(mut self, pos: usize) -> Self {
+    pub fn with_pos(mut self, pos: Position) -> Self {
         self.pos = Some(pos);
         self
     }
 
-    pub fn at(pos: usize) -> Self {
+    pub fn at(pos: Position) -> Self {
         ErrBuilder {
             err_type: None,
             message: None,
@@ -143,34 +127,6 @@ impl ErrBuilder {
             pos: self
                 .pos
                 .unwrap_or_else(|| panic!("ErrBuilder failed: pos was not supplied")),
-        }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::ErrType;
-    use super::LoxError;
-    use quickcheck::quickcheck;
-
-    #[test]
-    fn test_err_msg() {
-        let msg: &str = "Test message!";
-        let e: LoxError = LoxError {
-            msg: msg.to_string(),
-            err_type: ErrType::TokenizingErr,
-            pos: 0,
-        };
-        assert_eq!(
-            e.generate_err_msg(&"XXXXXXXXXXXXXXXXX".to_string()),
-            "XXXXXXXXXX\n".to_string() + msg
-        );
-    }
-
-    quickcheck! {
-      fn quickcheck_err_construct(msg: String, pos: usize) -> bool {
-          LoxError {msg: msg, err_type: ErrType::TokenizingErr, pos: pos};
-          true
         }
     }
 }

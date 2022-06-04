@@ -1,3 +1,4 @@
+use crate::interpreter::errors::position::Position;
 use crate::interpreter::errors::ErrBuilder;
 use crate::interpreter::errors::ErrType::ParsingErr;
 use crate::interpreter::errors::LoxResult;
@@ -248,15 +249,16 @@ impl Parser {
         Ok(Rule::from_sub(first_sub_rule, sub_rules))
     }
 
-    fn current_pos(&self) -> usize {
-        self.token_reader
-            .previous()
-            .map(|t: &Token| t.pos())
-            .unwrap_or(0)
-    }
-
     fn parsing_err(&self) -> ErrBuilder {
-        ErrBuilder::at(self.current_pos()).with_type(ParsingErr)
+        let relevant_token = self
+            .token_reader
+            .previous()
+            .or(self.token_reader.peek())
+            .unwrap_or_else(|| {
+                panic!("Failed to find the first token while generating error message.")
+            });
+        let pos: Position = relevant_token.clone().into();
+        ErrBuilder::at(pos).with_type(ParsingErr)
     }
 
     fn expected_next_token_err(&self, info: &str) -> LoxError {

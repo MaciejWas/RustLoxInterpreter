@@ -1,5 +1,7 @@
-use crate::interpreter::errors::ErrType::TokenizingErr;
-use crate::interpreter::errors::{LoxError, LoxResult};
+use crate::interpreter::tokens::Position;
+use crate::interpreter::errors::ErrBuilder;
+use crate::interpreter::errors::ErrType::ScanningErr;
+use crate::interpreter::errors::LoxResult;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Kwd {
@@ -24,13 +26,14 @@ pub enum Kwd {
 
 impl Kwd {
     pub fn is_valid(string: &String) -> bool {
-        match Self::from(string, 0) {
+        let pos = (0, 0).into();
+        match Self::from(string, pos) {
             Ok(_) => true,
             _ => false,
         }
     }
 
-    pub fn from(string: &String, pos: usize) -> LoxResult<Self> {
+    pub fn from(string: &String, pos: Position) -> LoxResult<Self> {
         match string.as_str() {
             "and" => Ok(Self::And),
             "class" => Ok(Self::Class),
@@ -46,28 +49,10 @@ impl Kwd {
             "true" => Ok(Self::True),
             "var" => Ok(Self::Var),
             "while" => Ok(Self::While),
-            _ => LoxError::new_err(
-                "Failed to build Kwd from string".to_string(),
-                pos,
-                TokenizingErr,
-            ),
-        }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::Kwd;
-    use quickcheck::quickcheck;
-
-    quickcheck! {
-        fn quickcheck_kwd(s: String) -> bool {
-            let result = Kwd::from(&s, 0);
-            if Kwd::is_valid(&s) {
-                return result.is_ok()
-            }
-
-            result.is_err()
+            _ => Err(ErrBuilder::at(pos)
+                .with_type(ScanningErr)
+                .with_message(format!("Could not create keywork token from {:?}", string))
+                .build()),
         }
     }
 }

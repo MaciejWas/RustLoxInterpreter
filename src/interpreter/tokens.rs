@@ -1,3 +1,5 @@
+use crate::interpreter::errors::position::Position;
+use crate::interpreter::errors::ErrBuilder;
 use crate::interpreter::errors::ErrType::LogicError;
 use crate::interpreter::errors::ErrType::TokenizingErr;
 use crate::interpreter::errors::LoxResult;
@@ -18,62 +20,65 @@ const NUMBER_RE: &str = r"^[0-9]+$";
 
 #[derive(Clone, Eq, PartialEq)]
 pub enum Token {
-    PunctToken(Punct, usize),
-    KwdToken(Kwd, usize),
-    ValueToken(LoxValue, usize),
-    IdentifierToken(String, usize),
+    PunctToken(Punct, Position),
+    KwdToken(Kwd, Position),
+    ValueToken(LoxValue, Position),
+    IdentifierToken(String, Position),
+}
+
+impl Into<Position> for Token {
+    fn into(self) -> Position {
+        match self {
+            Self::PunctToken(_, pos) => pos,
+            Self::KwdToken(_, pos) => pos,
+            Self::ValueToken(_, pos) => pos,
+            Self::IdentifierToken(_, pos) => pos,
+        }
+    }
 }
 
 impl Token {
-    pub fn from_string(string: String, pos: usize) -> LoxResult<Self> {
+    pub fn from_string(string: String, position: Position) -> LoxResult<Self> {
         if string.eq("True") {
-            Ok(Self::ValueToken(LoxValue::from(true), pos))
+            Ok(Self::ValueToken(LoxValue::from(true), position))
         } else if string.eq("False") {
-            Ok(Self::ValueToken(LoxValue::from(false), pos))
+            Ok(Self::ValueToken(LoxValue::from(false), position))
         } else if Kwd::is_valid(&string) {
-            let kwd = Kwd::from(&string, pos)?;
-            Ok(Self::KwdToken(kwd, pos))
+            let kwd = Kwd::from(&string, position.clone())?;
+            Ok(Self::KwdToken(kwd, position))
         } else if Regex::new(VARIABLE_RE).unwrap().is_match(&string) {
-            Ok(Self::IdentifierToken(string, pos))
+            Ok(Self::IdentifierToken(string, position))
         } else if Regex::new(NUMBER_RE).unwrap().is_match(&string) {
             let number: i32 = string.parse().expect("Failed to parse string as number");
-            Ok(Self::ValueToken(LoxValue::from(number), pos))
+            Ok(Self::ValueToken(LoxValue::from(number), position))
         } else if string.starts_with('\"') && string.ends_with('\"') {
-            Ok(Self::ValueToken(LoxValue::from(string), pos))
+            Ok(Self::ValueToken(LoxValue::from(string), position))
         } else {
-            Self::tokenizing_err(format!("Did not understand {}", string), pos)
-        }
-    }
-
-    pub fn pos(&self) -> usize {
-        match self {
-            Self::PunctToken(_, pos) => *pos,
-            Self::KwdToken(_, pos) => *pos,
-            Self::ValueToken(_, pos) => *pos,
-            Self::IdentifierToken(_, pos) => *pos,
+            Err(Self::tokenizing_err()
+                .with_message(format!("Did not understand {}", string))
+                .with_pos(position)
+                .build())
         }
     }
 
     pub fn as_punct(&self) -> LoxResult<Punct> {
+        let pos: Position = self.clone().into();
         match self {
             Self::PunctToken(punct, _) => Ok(punct.clone()),
-            _ => LoxError::new_err(format!("{:?} is not a punct", self), self.pos(), LogicError),
+            _ => Err(ErrBuilder::at(pos).is_not(self, "a lox value").build())
         }
     }
 
     pub fn as_lox_value(&self) -> LoxResult<LoxValue> {
+        let pos: Position = self.clone().into();
         match self {
             Self::ValueToken(lox_val, _) => Ok(lox_val.clone()),
-            _ => LoxError::new_err(
-                format!("{:?} is not a lox value", self),
-                self.pos(),
-                LogicError,
-            ),
+            _ => Err(ErrBuilder::at(pos).is_not(self, "a lox value").build())
         }
     }
 
-    pub fn tokenizing_err<A>(text: String, pos: usize) -> LoxResult<A> {
-        LoxError::new_err(text.to_string(), pos, TokenizingErr)
+    pub fn tokenizing_err() -> ErrBuilder {
+        ErrBuilder::new().with_type(TokenizingErr)
     }
 
     pub fn can_be_unary_op(&self) -> bool {
@@ -130,36 +135,23 @@ impl Equals<Punct> for Token {
 }
 
 pub trait Tokenizable {
-    fn at(self, pos: usize) -> Token;
+    fn at(self, pos: Position) -> Token;
 }
 
 impl Tokenizable for Punct {
-    fn at(self, pos: usize) -> Token {
+    fn at(self, pos: Position) -> Token {
         Token::PunctToken(self, pos)
     }
 }
 
 impl Tokenizable for String {
-    fn at(self, pos: usize) -> Token {
+    fn at(self, pos: Position) -> Token {
         Token::from_string(self, pos).unwrap() // unsafe lol
     }
 }
 
 impl Tokenizable for LoxValue {
-    fn at(self, pos: usize) -> Token {
+    fn at(self, pos: Position) -> Token {
         Token::ValueToken(self, pos)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::Token;
-    use quickcheck::quickcheck;
-
-    quickcheck! {
-        fn quickcheck_token_from(s: String) -> bool {
-            let _ = Token::from_string(s, 0);
-            true
-        }
     }
 }

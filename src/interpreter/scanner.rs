@@ -1,3 +1,4 @@
+use crate::interpreter::errors::position::Position;
 use crate::interpreter::errors::{ErrBuilder, ErrType::ScanningErr, LoxResult};
 
 use crate::interpreter::readers::{Reader, TextReader};
@@ -32,21 +33,22 @@ impl Scanner {
     }
 
     fn next_token(&self) -> LoxResult<Token> {
-        let curr_pos = self.reader.pos();
-        let err_builder = ErrBuilder::at(curr_pos).with_type(ScanningErr);
+        let pos = self.reader.curr_pos();
+
+        let err_builder = ErrBuilder::at(pos.clone()).with_type(ScanningErr);
 
         match self.reader.advance() {
             Some(c) => match c {
-                '(' => Ok(LeftParen.at(curr_pos)),
-                ')' => Ok(RightParen.at(curr_pos)),
-                '{' => Ok(LeftBrace.at(curr_pos)),
-                '}' => Ok(RightBrace.at(curr_pos)),
-                ',' => Ok(Comme.at(curr_pos)),
-                '.' => Ok(Dot.at(curr_pos)),
-                '-' => Ok(Minus.at(curr_pos)),
-                '+' => Ok(Plus.at(curr_pos)),
-                ';' => Ok(Semicolon.at(curr_pos)),
-                '*' => Ok(Star.at(curr_pos)),
+                '(' => Ok(LeftParen.at(pos)),
+                ')' => Ok(RightParen.at(pos)),
+                '{' => Ok(LeftBrace.at(pos)),
+                '}' => Ok(RightBrace.at(pos)),
+                ',' => Ok(Comme.at(pos)),
+                '.' => Ok(Dot.at(pos)),
+                '-' => Ok(Minus.at(pos)),
+                '+' => Ok(Plus.at(pos)),
+                ';' => Ok(Semicolon.at(pos)),
+                '*' => Ok(Star.at(pos)),
                 '!' => self.handle_bang(),
                 '=' => self.handle_eq(),
                 '>' => self.handle_gr(),
@@ -65,7 +67,7 @@ impl Scanner {
                     }
                 }
             },
-            None => Ok(Eof.at(self.reader.pos())),
+            None => Ok(Eof.at(pos)),
         }
     }
 
@@ -78,28 +80,28 @@ impl Scanner {
     }
 
     fn handle_string_literal(&self, first_char: &char) -> LoxResult<Token> {
-        let start = self.reader.pos();
+        let pos = self.reader.curr_pos();
+
         let mut buffer = String::new();
         buffer.push(*first_char);
         while let Some(c) = self.reader.advance() {
             buffer.push(*c);
             if *c == '"' {
-                break
+                break;
             }
         }
-
-        Token::from_string(buffer, start)
+        Ok(buffer.at(pos))
     }
 
     fn handle_var_or_val_literal(&self, first_char: &char) -> LoxResult<Token> {
+                let pos = self.reader.curr_pos();
+
+
         let mut buffer = String::new();
         buffer.push(*first_char);
-        let start = self.reader.pos();
-
-        let is_string_literal = *first_char == '*';
 
         while let Some(c) = self.reader.peek() {
-            if !is_valid_variable_char(c) && !is_string_literal {
+            if !is_valid_variable_char(c) {
                 break;
             }
             self.reader.advance();
@@ -109,56 +111,67 @@ impl Scanner {
                 break;
             }
         }
-        Token::from_string(buffer, start)
+        Token::from_string(buffer, pos)
     }
 
     fn handle_bang(&self) -> LoxResult<Token> {
+              let pos = self.reader.curr_pos();
+
+
         match self.reader.peek() {
             Some(c) => match c {
-                '=' => self.advance_and(|| Ok(BangEqual.at(self.reader.pos()))),
-                _ => Ok(Bang.at(self.reader.pos())),
+                '=' => self.advance_and(|| Ok(BangEqual.at(pos.clone()))),
+                _ => Ok(Bang.at(pos)),
             },
-            None => unexpected_eof_err(self.reader.pos()),
+            None => unexpected_eof_err(pos),
         }
     }
 
     fn handle_eq(&self) -> LoxResult<Token> {
+        let pos = self.reader.curr_pos();
+
         match self.reader.peek() {
             Some(c) => match c {
-                '=' => self.advance_and(|| Ok(EqualEqual.at(self.reader.pos()))),
-                _ => Ok(Equal.at(self.reader.pos())),
+                '=' => self.advance_and(|| Ok(EqualEqual.at(pos.clone()))),
+                _ => Ok(Equal.at(pos)),
             },
-            None => unexpected_eof_err(self.reader.pos()),
+            None => unexpected_eof_err(pos),
         }
     }
 
     fn handle_le(&self) -> LoxResult<Token> {
+        let pos = self.reader.curr_pos();
+
         match self.reader.peek() {
             Some(c) => match c {
-                '=' => self.advance_and(|| Ok(LessEqual.at(self.reader.pos()))),
-                _ => Ok(Less.at(self.reader.pos())),
+                '=' => self.advance_and(|| Ok(LessEqual.at(pos.clone()))),
+                _ => Ok(Less.at(pos)),
             },
-            None => unexpected_eof_err(self.reader.pos()),
+            None => unexpected_eof_err(pos),
         }
     }
 
     fn handle_gr(&self) -> LoxResult<Token> {
+        let pos = self.reader.curr_pos();
+
         match self.reader.advance() {
             Some(c) => match c {
-                '=' => self.advance_and(|| Ok(GreaterEqual.at(self.reader.pos()))),
-                _ => Ok(Greater.at(self.reader.pos())),
+                '=' => self.advance_and(|| Ok(GreaterEqual.at(pos.clone()))),
+                _ => Ok(Greater.at(pos)),
             },
-            None => unexpected_eof_err(self.reader.pos()),
+            None => unexpected_eof_err(pos),
         }
     }
 
     fn handle_slash(&self) -> LoxResult<Token> {
+        let pos = self.reader.curr_pos();
+
         match self.reader.advance() {
             Some(c) => match c {
                 '/' => self.handle_comment(),
-                _ => Ok(Slash.at(self.reader.pos())),
+                _ => Ok(Slash.at(pos)),
             },
-            None => unexpected_eof_err(self.reader.pos()),
+            None => unexpected_eof_err(pos),
         }
     }
 
@@ -180,7 +193,7 @@ fn is_valid_variable_char(c: &char) -> bool {
     c.is_alphanumeric() || *c == '\'' || *c == '_' || *c == '"'
 }
 
-fn unexpected_eof_err<A>(pos: usize) -> LoxResult<A> {
+fn unexpected_eof_err<A>(pos: Position) -> LoxResult<A> {
     Err(ErrBuilder::at(pos)
         .with_type(ScanningErr)
         .expected_but_found("next character", "end of file")

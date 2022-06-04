@@ -1,3 +1,4 @@
+use crate::interpreter::errors::position::Position;
 use crate::interpreter::errors::ErrType::LogicError;
 use crate::interpreter::errors::{LoxError, LoxResult};
 use crate::interpreter::execute::binary_operations;
@@ -93,13 +94,10 @@ impl Visitor<Unary, LoxResult<LoxValue>> for Executor {
     fn visit(&mut self, unary: &Unary) -> LoxResult<LoxValue> {
         match unary {
             Unary::Final(None, token) => get_value(token, &self.state),
-            Unary::Final(Some(op), token) => {
-                unary_op(op.as_punct()?, get_value(token, &self.state)?, op.pos())
-            }
-
+            Unary::Final(Some(op), token) => unary_op(op.as_punct()?, get_value(token, &self.state)?, op.clone().into()),
             Unary::Recursive(None, expr) => self.visit(expr.as_ref()),
             Unary::Recursive(Some(op), expr) => {
-                unary_op(op.as_punct()?, self.visit(expr.as_ref())?, op.pos())
+                unary_op(op.as_punct()?, self.visit(expr.as_ref())?, op.clone().into())
             }
         }
     }
@@ -110,19 +108,14 @@ fn get_value(token: &Token, state: &HashMap<String, LoxValue>) -> LoxResult<LoxV
         Token::IdentifierToken(identifier, pos) => {
             return Ok(state.get(identifier).unwrap().clone())
         }
-        Token::ValueToken(lox_val, pos) => return Ok(lox_val.clone()),
-        Token::KwdToken(kwd, pos) => {
-            LoxError::new_err(format!("wtf {:?} is not unary", kwd), *pos, LogicError)
-        }
-        Token::PunctToken(punct, pos) => {
-            LoxError::new_err(format!("wtf {:?} is not unary", punct), *pos, LogicError)
-        }
+        Token::ValueToken(lox_val, pos) => Ok(lox_val.clone()),
+        _ => Err(eval_err().with_pos(token.clone().into()).is_not(token, "a unary operator").build())
     }
 }
 
 fn eval_fold(acc: LoxResult<LoxValue>, next: (&Token, LoxResult<LoxValue>)) -> LoxResult<LoxValue> {
     let acc: LoxValue = acc?;
-    let curr_pos = next.0.pos();
+    let curr_pos: Position = next.0.clone().into();
 
     let (op, val) = next;
     let val: LoxValue = val?;
@@ -130,18 +123,15 @@ fn eval_fold(acc: LoxResult<LoxValue>, next: (&Token, LoxResult<LoxValue>)) -> L
     return binary_operations::handle(op, acc, val, curr_pos);
 }
 
-fn unary_op(op: Punct, right: LoxValue, pos: usize) -> LoxResult<LoxValue> {
+fn unary_op(op: Punct, right: LoxValue, pos: Position) -> LoxResult<LoxValue> {
     match op {
         Punct::Minus => match right {
             LoxValue::Integer(x) => Ok(LoxValue::from(-x)),
-            _ => eval_err(
-                format!(
-                    "applying {:?} on {:?} as an unary operator is not supported.",
-                    op, right
-                ),
-                pos,
-            ),
+            _ => Err(eval_err().with_pos(pos).with_message(format!(
+                "applying {:?} on {:?} as an unary operator is not supported.",
+                op, right
+            )).build())
         },
-        _ => eval_err(format!("{:?} is not a valid unary operator.", op), pos),
+        _ => Err(eval_err().with_pos(pos).is_not(op, "a unary operator").build())
     }
 }
