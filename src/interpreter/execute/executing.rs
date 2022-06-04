@@ -1,12 +1,13 @@
-use crate::interpreter::errors::position::Position;
-use crate::interpreter::errors::ErrType::LogicError;
-use crate::interpreter::errors::{LoxError, LoxResult};
-use crate::interpreter::execute::binary_operations;
-use crate::interpreter::execute::binary_operations::eval_err;
-use crate::interpreter::parser::structure::*;
-use crate::interpreter::parser::visitor::*;
-use crate::interpreter::tokens::position_of;
-use crate::interpreter::tokens::{LoxValue, Punct, Token};
+use crate::interpreter::{
+    errors::position::Position,
+    errors::LoxResult,
+    execute::binary_operations,
+    execute::binary_operations::eval_err,
+    parser::structure::*,
+    parser::visitor::*,
+    tokens::position_of,
+    tokens::{LoxValue, Punct, Token},
+};
 use std::collections::HashMap;
 
 pub struct Executor {
@@ -34,8 +35,12 @@ impl Visitor<Statement, LoxResult<()>> for Executor {
             }
             Statement::IfStmt(cond, program) => {
                 if LoxValue::Boolean(true) == self.visit(cond)? {
-                    self.visit(program);
+                    self.visit(program)?;
                 }
+            }
+            Statement::LetStmt(lval, rval) => {
+                let right_evaluated = self.visit(&rval.expr)?;
+                self.state.insert(lval.identifier.clone(), right_evaluated);
             }
         }
         Ok(())
@@ -110,10 +115,10 @@ impl Visitor<Unary, LoxResult<LoxValue>> for Executor {
 
 fn get_value(token: &Token, state: &HashMap<String, LoxValue>) -> LoxResult<LoxValue> {
     match token {
-        Token::IdentifierToken(identifier, pos) => {
+        Token::IdentifierToken(identifier, _) => {
             return Ok(state.get(identifier).unwrap().clone())
         }
-        Token::ValueToken(lox_val, pos) => Ok(lox_val.clone()),
+        Token::ValueToken(lox_val, _) => Ok(lox_val.clone()),
         _ => Err(eval_err()
             .with_pos(position_of(token))
             .is_not(token, "a unary operator")

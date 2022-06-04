@@ -1,16 +1,11 @@
-use crate::interpreter::errors::position::Position;
-use crate::interpreter::errors::ErrBuilder;
-use crate::interpreter::errors::ErrType::ParsingErr;
-use crate::interpreter::errors::LoxResult;
-use crate::interpreter::readers::{Reader, TokenReader};
-use crate::interpreter::scanner::ScannerOutput;
-use crate::interpreter::tokens::position_of;
-use crate::interpreter::tokens::Equals;
-use crate::interpreter::tokens::Kwd;
-use crate::interpreter::tokens::Punct;
-use crate::interpreter::tokens::Punct::*;
-use crate::interpreter::tokens::Token;
-use crate::interpreter::LoxError;
+use crate::interpreter::{
+    errors::{ErrBuilder, ErrType::ParsingErr, LoxResult},
+    readers::{Reader, TokenReader},
+    scanner::ScannerOutput,
+    tokens::Punct::*,
+    tokens::*,
+    LoxError,
+};
 
 pub mod pretty_printing;
 pub mod structure;
@@ -64,13 +59,7 @@ impl Parser {
             statements.push(self.statement()?);
             self.consume_punct(&Semicolon, info)?;
         }
-
-        self.token_reader
-            .advance_or(self.expected_next_token_err(info))?
-            .satisfies_or(
-                |t: &Token| t.equals(&RightBrace),
-                |t: &Token| self.parsing_err().expected_but_found('}', t).build(),
-            )?;
+        self.consume_punct(&RightBrace, "after reading scoped program")?;
 
         Ok(statements)
     }
@@ -85,8 +74,25 @@ impl Parser {
         match first_token {
             Token::KwdToken(Kwd::Print, _) => self.print_stmt(),
             Token::KwdToken(Kwd::If, _) => self.if_stmt(),
+            Token::KwdToken(Kwd::Var, _) => self.var_stmt(),
             _ => Ok(Statement::ExprStmt(self.expression()?)),
         }
+    }
+
+    fn var_stmt(&self) -> LoxResult<Statement> {
+        let info = "parsing assignment statement";
+        self.consume_kwd(&Kwd::Var, info)?;
+        let var_name: &Token = self.token_reader.advance_or(self.expected_next_token_err(info))?;
+
+        if let Token::IdentifierToken(identifier, _) = var_name {
+            self.consume_punct(&Equal, info)?;
+            let expr = self.expression()?;
+            let lval = LVal { identifier: identifier.clone() };
+            let rval = RVal { expr };
+            return Ok(Statement::LetStmt(lval, rval));
+        }
+
+        Err(self.parsing_err().expected_but_found("identifier", var_name).build())
     }
 
     fn print_stmt(&self) -> LoxResult<Statement> {
@@ -165,10 +171,9 @@ impl Parser {
 
     fn unary_op(&self) -> LoxResult<Unary> {
         let info = "Parsing unary expression with unary operator.";
-
-        let first_token = self.token_reader.advance().unwrap_or_else(|| {
-            panic!("unary_op should be called after making sure that the operator fking exists")
-        });
+        let first_token = self
+            .token_reader
+            .advance_or(self.expected_next_token_err(info))?;
         let second_token = self
             .token_reader
             .advance_or(self.expected_next_token_err(info))?;

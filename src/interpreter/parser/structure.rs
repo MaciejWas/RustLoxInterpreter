@@ -14,6 +14,15 @@ pub enum Statement {
     ExprStmt(Expr),
     PrintStmt(Expr),
     IfStmt(Expr, Program),
+    LetStmt(LVal, RVal)
+}
+
+pub struct LVal {
+    pub identifier: String
+}
+
+pub struct RVal {
+    pub expr: Expr
 }
 
 pub enum Expr {
@@ -143,6 +152,7 @@ impl NamedType for Statement {
             Self::PrintStmt(_) => "Statement",
             Self::ExprStmt(_) => "Expression",
             Self::IfStmt(_, _) => "IfStatement",
+            Self::LetStmt(_, _) => "LetStmt",
         }
         .to_string()
     }

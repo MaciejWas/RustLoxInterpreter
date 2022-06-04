@@ -110,6 +110,14 @@ impl ErrBuilder {
         self
     }
 
+    pub fn reset(mut self) -> Self {
+        self.err_type = None;
+        self.message = None;
+        self.while_info = None;
+        self.pos = None;
+        self
+    }
+
     pub fn build(self) -> LoxError {
         let msg_core = self
             .message
