@@ -52,7 +52,7 @@ impl ErrBuilder {
         }
     }
 
-    pub fn with_type(mut self, err_type: ErrType) -> Self {
+    pub fn of_type(mut self, err_type: ErrType) -> Self {
         self.err_type = Some(err_type);
         self
     }

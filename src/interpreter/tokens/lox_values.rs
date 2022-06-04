@@ -36,18 +36,3 @@ impl From<String> for LoxValue {
         LoxValue::String(x)
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::LoxValue;
-    use quickcheck::quickcheck;
-
-    quickcheck! {
-        fn quickcheck_lox_value(x: i32, y: bool, z: String) -> bool {
-            let _ = LoxValue::from(x);
-            let _ = LoxValue::from(y);
-            let _ = LoxValue::from(z);
-            true
-        }
-    }
-}

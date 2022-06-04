@@ -1,6 +1,5 @@
 use crate::interpreter::errors::position::Position;
 use crate::interpreter::errors::ErrBuilder;
-use crate::interpreter::errors::ErrType::LogicError;
 use crate::interpreter::errors::ErrType::TokenizingErr;
 use crate::interpreter::errors::LoxResult;
 use crate::interpreter::LoxError;
@@ -26,14 +25,12 @@ pub enum Token {
     IdentifierToken(String, Position),
 }
 
-impl Into<Position> for Token {
-    fn into(self) -> Position {
-        match self {
-            Self::PunctToken(_, pos) => pos,
-            Self::KwdToken(_, pos) => pos,
-            Self::ValueToken(_, pos) => pos,
-            Self::IdentifierToken(_, pos) => pos,
-        }
+pub fn position_of(token: &Token) -> Position {
+    match token {
+        Token::PunctToken(_, pos) => pos.clone(),
+        Token::KwdToken(_, pos) => pos.clone(),
+        Token::ValueToken(_, pos) => pos.clone(),
+        Token::IdentifierToken(_, pos) => pos.clone(),
     }
 }
 
@@ -62,23 +59,25 @@ impl Token {
     }
 
     pub fn as_punct(&self) -> LoxResult<Punct> {
-        let pos: Position = self.clone().into();
         match self {
             Self::PunctToken(punct, _) => Ok(punct.clone()),
-            _ => Err(ErrBuilder::at(pos).is_not(self, "a lox value").build())
+            _ => Err(ErrBuilder::at(position_of(self))
+                .is_not(self, "a lox value")
+                .build()),
         }
     }
 
     pub fn as_lox_value(&self) -> LoxResult<LoxValue> {
-        let pos: Position = self.clone().into();
         match self {
             Self::ValueToken(lox_val, _) => Ok(lox_val.clone()),
-            _ => Err(ErrBuilder::at(pos).is_not(self, "a lox value").build())
+            _ => Err(ErrBuilder::at(position_of(self))
+                .is_not(self, "a lox value")
+                .build()),
         }
     }
 
     pub fn tokenizing_err() -> ErrBuilder {
-        ErrBuilder::new().with_type(TokenizingErr)
+        ErrBuilder::new().of_type(TokenizingErr)
     }
 
     pub fn can_be_unary_op(&self) -> bool {

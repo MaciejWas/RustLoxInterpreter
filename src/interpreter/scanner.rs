@@ -34,8 +34,7 @@ impl Scanner {
 
     fn next_token(&self) -> LoxResult<Token> {
         let pos = self.reader.curr_pos();
-
-        let err_builder = ErrBuilder::at(pos.clone()).with_type(ScanningErr);
+        let err_builder = ErrBuilder::at(pos.clone()).of_type(ScanningErr);
 
         match self.reader.advance() {
             Some(c) => match c {
@@ -94,8 +93,7 @@ impl Scanner {
     }
 
     fn handle_var_or_val_literal(&self, first_char: &char) -> LoxResult<Token> {
-                let pos = self.reader.curr_pos();
-
+        let pos = self.reader.curr_pos();
 
         let mut buffer = String::new();
         buffer.push(*first_char);
@@ -115,8 +113,7 @@ impl Scanner {
     }
 
     fn handle_bang(&self) -> LoxResult<Token> {
-              let pos = self.reader.curr_pos();
-
+        let pos = self.reader.curr_pos();
 
         match self.reader.peek() {
             Some(c) => match c {
@@ -195,7 +192,7 @@ fn is_valid_variable_char(c: &char) -> bool {
 
 fn unexpected_eof_err<A>(pos: Position) -> LoxResult<A> {
     Err(ErrBuilder::at(pos)
-        .with_type(ScanningErr)
+        .of_type(ScanningErr)
         .expected_but_found("next character", "end of file")
         .build())
 }

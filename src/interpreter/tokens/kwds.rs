@@ -1,7 +1,7 @@
-use crate::interpreter::tokens::Position;
 use crate::interpreter::errors::ErrBuilder;
 use crate::interpreter::errors::ErrType::ScanningErr;
 use crate::interpreter::errors::LoxResult;
+use crate::interpreter::tokens::Position;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Kwd {
@@ -50,7 +50,7 @@ impl Kwd {
             "var" => Ok(Self::Var),
             "while" => Ok(Self::While),
             _ => Err(ErrBuilder::at(pos)
-                .with_type(ScanningErr)
+                .of_type(ScanningErr)
                 .with_message(format!("Could not create keywork token from {:?}", string))
                 .build()),
         }

@@ -64,7 +64,7 @@ impl LoxInterpreter {
 
         let response = self.run(line.clone());
         match response {
-            Ok(text) => println!("{}", text),
+            Ok(_) => {}
             Err(error_message) => {
                 println!("{}", error_message.generate_err_msg(&line));
             }

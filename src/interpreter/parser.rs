@@ -4,6 +4,7 @@ use crate::interpreter::errors::ErrType::ParsingErr;
 use crate::interpreter::errors::LoxResult;
 use crate::interpreter::readers::{Reader, TokenReader};
 use crate::interpreter::scanner::ScannerOutput;
+use crate::interpreter::tokens::position_of;
 use crate::interpreter::tokens::Equals;
 use crate::interpreter::tokens::Kwd;
 use crate::interpreter::tokens::Punct;
@@ -257,8 +258,7 @@ impl Parser {
             .unwrap_or_else(|| {
                 panic!("Failed to find the first token while generating error message.")
             });
-        let pos: Position = relevant_token.clone().into();
-        ErrBuilder::at(pos).with_type(ParsingErr)
+        ErrBuilder::at(position_of(relevant_token)).of_type(ParsingErr)
     }
 
     fn expected_next_token_err(&self, info: &str) -> LoxError {

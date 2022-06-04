@@ -6,6 +6,9 @@ pub struct Position {
 
 impl Into<Position> for (usize, usize) {
     fn into(self) -> Position {
-        Position {line: self.0, line_pos: self.1}
+        Position {
+            line: self.0,
+            line_pos: self.1,
+        }
     }
 }

@@ -1,5 +1,5 @@
-use crate::interpreter::errors::position::Position;
 use super::reader::ReaderBase;
+use crate::interpreter::errors::position::Position;
 use std::cell::Cell;
 
 pub struct TextReader {
@@ -11,7 +11,10 @@ pub struct TextReader {
 
 impl TextReader {
     pub fn curr_pos(&self) -> Position {
-        Position { line: self.current_line.get(), line_pos: self.line_pos.get() }
+        Position {
+            line: self.current_line.get(),
+            line_pos: self.line_pos.get(),
+        }
     }
 }
 
