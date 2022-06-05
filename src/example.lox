@@ -4,13 +4,20 @@
 333;
 print "qwertyuiop[]asdfghjkl;'zxcvbnm,./QWERTYUIOP{}ASDFGHJKL:|ZXCVBNM<>?1234567890-=!@#$%^&*()_+";
 print 3333;
-print True;
+print true;
 if (3==3) {
     print "You should see this!!";
 };
 
 if (1==2) {
-    print "You should NOT see this!!!!!!!!!!!!!!!!!!!!!!!!!"; if () + 3
+    print "You should NOT see this!!!!!!!!!!!!!!!!!!!!!!!!!";
 };
-print "FSADFASDFSADF"
+print "FSADFASDFSADF";
 print 3333;
+
+var x = 0;
+while (x != 10) {
+    print "Hey, I'm increasing x";
+    var x = x + 1;
+};
+print x;

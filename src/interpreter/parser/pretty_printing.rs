@@ -39,6 +39,10 @@ impl PrettyPrint for Statement {
                 cond.pretty_print(pad + 1);
                 prog.pretty_print(pad + 1)
             }
+            Self::WhileLoop(cond, prog) => {
+                cond.pretty_print(pad + 1);
+                prog.pretty_print(pad + 1)
+            }
         }
     }
 }

@@ -22,6 +22,7 @@ pub fn handle(op: &Token, acc: LoxValue, val: LoxValue, curr_pos: Position) -> L
         Punct::Plus => plus(acc, val, curr_pos),
         Punct::Minus => minus(acc, val, curr_pos),
         Punct::EqualEqual => eq(acc, val, curr_pos),
+        Punct::BangEqual => neq(acc, val, curr_pos),
         _ => Err(eval_err()
             .with_pos(curr_pos)
             .is_not(op, "a valid lox operation")
@@ -65,6 +66,17 @@ fn eq(acc: LoxValue, val: LoxValue, pos: Position) -> LoxResult<LoxValue> {
         (LoxValue::Boolean(x), LoxValue::Boolean(y)) => Ok(LoxValue::Boolean(x == y)),
         (LoxValue::String(x), LoxValue::String(y)) => Ok(LoxValue::Boolean(x == y)),
         _ => Err(cant_perform_binary_on("equality check", acc, val)
+            .with_pos(pos)
+            .build()),
+    }
+}
+
+fn neq(acc: LoxValue, val: LoxValue, pos: Position) -> LoxResult<LoxValue> {
+    match (&acc, &val) {
+        (LoxValue::Integer(x), LoxValue::Integer(y)) => Ok(LoxValue::Boolean(x != y)),
+        (LoxValue::Boolean(x), LoxValue::Boolean(y)) => Ok(LoxValue::Boolean(x != y)),
+        (LoxValue::String(x), LoxValue::String(y)) => Ok(LoxValue::Boolean(x != y)),
+        _ => Err(cant_perform_binary_on("not-equality check", acc, val)
             .with_pos(pos)
             .build()),
     }

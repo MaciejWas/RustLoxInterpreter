@@ -38,7 +38,7 @@ impl Parser {
             .peek()
             .map_or(false, |t: &Token| !t.equals(&Eof))
         {
-            stmts.push(self.statement()?);
+            stmts.push(self.statement_decider()?);
             self.consume_punct(&Semicolon, "Reading statements")?;
         }
 
@@ -56,7 +56,7 @@ impl Parser {
             .peek_or(self.expected_next_token_err(info))?
             .equals(&RightBrace)
         {
-            statements.push(self.statement()?);
+            statements.push(self.statement_decider()?);
             self.consume_punct(&Semicolon, info)?;
         }
         self.consume_punct(&RightBrace, "after reading scoped program")?;
@@ -64,7 +64,7 @@ impl Parser {
         Ok(statements)
     }
 
-    fn statement(&self) -> LoxResult<Statement> {
+    fn statement_decider(&self) -> LoxResult<Statement> {
         let first_token = self.token_reader.peek_or(
             self.parsing_err()
                 .expected_found_nothing("first token of a statement")
@@ -73,10 +73,22 @@ impl Parser {
         )?;
         match first_token {
             Token::KwdToken(Kwd::Print, _) => self.print_stmt(),
-            Token::KwdToken(Kwd::If, _) => self.if_stmt(),
-            Token::KwdToken(Kwd::Var, _) => self.var_stmt(),
-            _ => Ok(Statement::ExprStmt(self.expression()?)),
+            Token::KwdToken(Kwd::If, _)    => self.if_stmt(),
+            Token::KwdToken(Kwd::Var, _)   => self.var_stmt(),
+            Token::KwdToken(Kwd::While, _) => self.while_stmt(),
+            _                              => self.expr_stmt(),
         }
+    }
+
+    fn while_stmt(&self) -> LoxResult<Statement> {
+        self.consume_kwd(&Kwd::While, "").unwrap_or_else(|_err| panic!("error in statement decider"));
+        let cond = self.parenthesized_expr()?;
+        let prog = self.scoped_program()?;
+        Ok(Statement::WhileLoop(cond, prog))
+    }
+
+    fn expr_stmt(&self) -> LoxResult<Statement> {
+        Ok(Statement::ExprStmt(self.expression()?))
     }
 
     fn var_stmt(&self) -> LoxResult<Statement> {
@@ -122,7 +134,7 @@ impl Parser {
             .equals(&LeftParen);
 
         if is_parenthesized {
-            self.token_reader.advance();
+            self.consume_punct(&LeftParen, "").unwrap_or_else(|_err| panic!("This absolutely should not happen"));
             let parenthesized_expr = self.expression();
             self.consume_punct(&RightParen, "Looking for closing parenthesis")?;
 
@@ -152,12 +164,12 @@ impl Parser {
     }
 
     fn factor(&self) -> LoxResult<Factor> {
-        self.abstract_recursive_descent(Self::unary, |t: &Token| {
+        self.abstract_recursive_descent(Self::unary_decider, |t: &Token| {
             t.equals(&Star) || t.equals(&Slash)
         })
     }
 
-    fn unary(&self) -> LoxResult<Unary> {
+    fn unary_decider(&self) -> LoxResult<Unary> {
         let first_token = self
             .token_reader
             .peek_or(self.expected_next_token_err("Parsing first token of a unary expression"))?;
@@ -223,9 +235,10 @@ impl Parser {
     }
 
     fn parenthesized_unary(&self) -> LoxResult<Unary> {
-        self.consume_punct(&LeftParen, "Parsing parenthesized unary expression")?;
-        let unary_inside_parenth = self.unary();
-        self.consume_punct(&RightParen, "Parsing parenthesized unary expression")?;
+        let info = "Parsing parenthesized unary expression";
+        self.consume_punct(&LeftParen, info)?;
+        let unary_inside_parenth = self.unary_decider();
+        self.consume_punct(&RightParen, info)?;
         return unary_inside_parenth;
     }
 

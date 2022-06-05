@@ -15,6 +15,7 @@ pub enum Statement {
     PrintStmt(Expr),
     IfStmt(Expr, Program),
     LetStmt(LVal, RVal),
+    WhileLoop(Expr, Program)
 }
 
 pub struct LVal {
@@ -153,6 +154,7 @@ impl NamedType for Statement {
             Self::ExprStmt(_) => "Expression",
             Self::IfStmt(_, _) => "IfStatement",
             Self::LetStmt(_, _) => "LetStmt",
+            Self::WhileLoop(_, _) => "WhileLoop",
         }
         .to_string()
     }

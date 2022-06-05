@@ -60,7 +60,12 @@ impl Visitor<Statement, LoxResult<()>> for Executor {
             }
             Statement::IfStmt(cond, program) => {
                 let cond_evaluated = self.visit(cond)?;
-                if bool::from(cond_evaluated)  {
+                if bool::from(cond_evaluated) {
+                    self.scoped(|v| v.visit(program))?;
+                }
+            }
+            Statement::WhileLoop(cond, program) => {
+                while bool::from(self.visit(cond)?) {
                     self.scoped(|v| v.visit(program))?;
                 }
             }

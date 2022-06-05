@@ -3,7 +3,7 @@ use crate::interpreter::tokens::LoxValue;
 use std::collections::HashMap;
 use std::vec::Vec;
 
-struct Scope {
+pub struct Scope {
     bindings: HashMap<String, LoxValue>,
     name: String,
 }
@@ -35,6 +35,13 @@ impl State {
     }
 
     pub fn bind(&mut self, identifier: String, value: LoxValue) -> LoxResult<()> {
+        for scope in self.scope_stack.iter_mut() {
+            if scope.bindings.contains_key(&identifier) {
+                scope.bindings.insert(identifier, value);
+                return Ok(());
+            }
+        }
+
         self.scope_stack
             .last_mut()
             .ok_or_else(|| {
