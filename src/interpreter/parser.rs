@@ -82,17 +82,24 @@ impl Parser {
     fn var_stmt(&self) -> LoxResult<Statement> {
         let info = "parsing assignment statement";
         self.consume_kwd(&Kwd::Var, info)?;
-        let var_name: &Token = self.token_reader.advance_or(self.expected_next_token_err(info))?;
+        let var_name: &Token = self
+            .token_reader
+            .advance_or(self.expected_next_token_err(info))?;
 
         if let Token::IdentifierToken(identifier, _) = var_name {
             self.consume_punct(&Equal, info)?;
             let expr = self.expression()?;
-            let lval = LVal { identifier: identifier.clone() };
+            let lval = LVal {
+                identifier: identifier.clone(),
+            };
             let rval = RVal { expr };
             return Ok(Statement::LetStmt(lval, rval));
         }
 
-        Err(self.parsing_err().expected_but_found("identifier", var_name).build())
+        Err(self
+            .parsing_err()
+            .expected_but_found("identifier", var_name)
+            .build())
     }
 
     fn print_stmt(&self) -> LoxResult<Statement> {

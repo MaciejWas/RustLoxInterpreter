@@ -36,3 +36,13 @@ impl From<String> for LoxValue {
         LoxValue::String(x)
     }
 }
+
+impl From<LoxValue> for bool {
+    fn from(lox_val: LoxValue) -> bool {
+        match lox_val {
+            LoxValue::Integer(x) => x != 0,
+            LoxValue::Boolean(x) => x,
+            LoxValue::String(x) => x.len() > 0,
+        }
+    }
+}

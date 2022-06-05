@@ -23,8 +23,10 @@ impl Scanner {
         let mut tokens = Vec::new();
         loop {
             let token = self.next_token()?;
-            tokens.push(token.clone());
-            if token.equals(&Eof) {
+            let is_eof = token.equals(&Eof);
+            tokens.push(token);
+
+            if is_eof {
                 break;
             }
         }
@@ -34,7 +36,6 @@ impl Scanner {
 
     fn next_token(&self) -> LoxResult<Token> {
         let pos = self.reader.curr_pos();
-        let err_builder = ErrBuilder::at(pos.clone()).of_type(ScanningErr);
 
         match self.reader.advance() {
             Some(c) => match c {
@@ -60,7 +61,8 @@ impl Scanner {
                     if is_valid_variable_char(c) {
                         self.handle_literal(c)
                     } else {
-                        Err(err_builder
+                        Err(ErrBuilder::at(pos)
+                            .of_type(ScanningErr)
                             .with_message(format!("Unrecognized character `{c}`"))
                             .build())
                     }

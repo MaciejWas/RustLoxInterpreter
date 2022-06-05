@@ -27,18 +27,19 @@ pub enum Token {
 
 pub fn position_of(token: &Token) -> Position {
     match token {
-        Token::PunctToken(_, pos) => pos.clone(),
-        Token::KwdToken(_, pos) => pos.clone(),
-        Token::ValueToken(_, pos) => pos.clone(),
-        Token::IdentifierToken(_, pos) => pos.clone(),
+        Token::PunctToken(_, pos) => pos,
+        Token::KwdToken(_, pos) => pos,
+        Token::ValueToken(_, pos) => pos,
+        Token::IdentifierToken(_, pos) => pos,
     }
+    .clone()
 }
 
 impl Token {
     pub fn from_string(string: String, position: Position) -> LoxResult<Self> {
-        if string.eq("True") {
+        if string.eq("true") {
             Ok(Self::ValueToken(LoxValue::from(true), position))
-        } else if string.eq("False") {
+        } else if string.eq("false") {
             Ok(Self::ValueToken(LoxValue::from(false), position))
         } else if Kwd::is_valid(&string) {
             let kwd = Kwd::from(&string, position.clone())?;

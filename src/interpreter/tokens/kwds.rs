@@ -38,7 +38,6 @@ impl Kwd {
             "and" => Ok(Self::And),
             "class" => Ok(Self::Class),
             "else" => Ok(Self::Else),
-            "false" => Ok(Self::False),
             "fun" => Ok(Self::Fun),
             "for" => Ok(Self::For),
             "if" => Ok(Self::If),
@@ -46,7 +45,6 @@ impl Kwd {
             "return" => Ok(Self::Return),
             "super" => Ok(Self::Super),
             "this" => Ok(Self::This),
-            "true" => Ok(Self::True),
             "var" => Ok(Self::Var),
             "while" => Ok(Self::While),
             _ => Err(ErrBuilder::at(pos)

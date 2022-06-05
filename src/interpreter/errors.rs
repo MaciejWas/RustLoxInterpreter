@@ -63,7 +63,7 @@ impl ErrBuilder {
     }
 
     pub fn with_pos(mut self, pos: Position) -> Self {
-        self.pos = Some(pos);
+        self.pos = Some(pos.clone());
         self
     }
 
@@ -72,7 +72,7 @@ impl ErrBuilder {
             err_type: None,
             message: None,
             while_info: None,
-            pos: Some(pos),
+            pos: Some(pos.clone()),
         }
     }
 

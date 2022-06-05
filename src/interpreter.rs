@@ -31,9 +31,7 @@ pub struct LoxInterpreter {
 impl LoxInterpreter {
     pub fn new() -> Self {
         LoxInterpreter {
-            executor: Executor {
-                state: HashMap::new(),
-            },
+            executor: Executor::new(),
         }
     }
 
@@ -98,8 +96,6 @@ impl LoxInterpreter {
     fn run(&mut self, statement: String) -> Result<String, LoxError> {
         let scanner_output = Scanner::new(statement.clone()).scan()?;
         let parser_output = Parser::new(scanner_output).parse()?;
-        parser_output.pretty_print(0);
-
         self.executor.visit(&parser_output)?;
 
         Ok(format!("Ok!"))

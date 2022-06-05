@@ -14,15 +14,15 @@ pub enum Statement {
     ExprStmt(Expr),
     PrintStmt(Expr),
     IfStmt(Expr, Program),
-    LetStmt(LVal, RVal)
+    LetStmt(LVal, RVal),
 }
 
 pub struct LVal {
-    pub identifier: String
+    pub identifier: String,
 }
 
 pub struct RVal {
-    pub expr: Expr
+    pub expr: Expr,
 }
 
 pub enum Expr {
