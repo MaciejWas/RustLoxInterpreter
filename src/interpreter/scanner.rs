@@ -57,13 +57,14 @@ impl Scanner {
                 ' ' => self.next_token(),
                 '\t' => self.next_token(),
                 '\n' => self.next_token(),
+                '\r' => self.next_token(),
                 _ => {
                     if is_valid_variable_char(c) {
                         self.handle_literal(c)
                     } else {
                         Err(ErrBuilder::at(pos)
                             .of_type(ScanningErr)
-                            .with_message(format!("Unrecognized character `{c}`"))
+                            .with_message(format!("Unrecognized character {}", *c as u32))
                             .build())
                     }
                 }
