@@ -73,15 +73,16 @@ impl Parser {
         )?;
         match first_token {
             Token::KwdToken(Kwd::Print, _) => self.print_stmt(),
-            Token::KwdToken(Kwd::If, _)    => self.if_stmt(),
-            Token::KwdToken(Kwd::Var, _)   => self.var_stmt(),
+            Token::KwdToken(Kwd::If, _) => self.if_stmt(),
+            Token::KwdToken(Kwd::Var, _) => self.var_stmt(),
             Token::KwdToken(Kwd::While, _) => self.while_stmt(),
-            _                              => self.expr_stmt(),
+            _ => self.expr_stmt(),
         }
     }
 
     fn while_stmt(&self) -> LoxResult<Statement> {
-        self.consume_kwd(&Kwd::While, "").unwrap_or_else(|_err| panic!("error in statement decider"));
+        self.consume_kwd(&Kwd::While, "")
+            .unwrap_or_else(|_err| panic!("error in statement decider"));
         let cond = self.parenthesized_expr()?;
         let prog = self.scoped_program()?;
         Ok(Statement::WhileLoop(cond, prog))
@@ -128,19 +129,6 @@ impl Parser {
     }
 
     fn expression(&self) -> LoxResult<Expr> {
-        let is_parenthesized = self
-            .token_reader
-            .peek_or(self.expected_next_token_err("Checking if expression is inside parenthesis"))?
-            .equals(&LeftParen);
-
-        if is_parenthesized {
-            self.consume_punct(&LeftParen, "").unwrap_or_else(|_err| panic!("This absolutely should not happen"));
-            let parenthesized_expr = self.expression();
-            self.consume_punct(&RightParen, "Looking for closing parenthesis")?;
-
-            return parenthesized_expr;
-        }
-
         let eq: Eqlty = self.equality()?;
         Ok(Expr::Eqlty(eq))
     }
@@ -175,13 +163,14 @@ impl Parser {
             .peek_or(self.expected_next_token_err("Parsing first token of a unary expression"))?;
 
         if first_token.equals(&LeftParen) {
-            return self.parenthesized_unary();
+            let info = "Parsing parenthesized unary expression";
+            self.consume_punct(&LeftParen, info)?;
+            let unary_inside_parenth = self.unary_decider();
+            self.consume_punct(&RightParen, info)?;
+            return unary_inside_parenth;
         }
 
         if first_token.can_be_unary_op() {
-            self.token_reader
-                .advance()
-                .unwrap_or_else(|| panic!("This should not happen since we fucking peeked"));
             return self.unary_op();
         }
 
@@ -234,14 +223,6 @@ impl Parser {
         }
     }
 
-    fn parenthesized_unary(&self) -> LoxResult<Unary> {
-        let info = "Parsing parenthesized unary expression";
-        self.consume_punct(&LeftParen, info)?;
-        let unary_inside_parenth = self.unary_decider();
-        self.consume_punct(&RightParen, info)?;
-        return unary_inside_parenth;
-    }
-
     fn parenthesized_expr(&self) -> LoxResult<Expr> {
         let info = "Processing parenthesized expression";
 
@@ -283,7 +264,7 @@ impl Parser {
             .unwrap_or_else(|| {
                 panic!("Failed to find the first token while generating error message.")
             });
-        ErrBuilder::at(position_of(relevant_token)).of_type(ParsingErr)
+        ErrBuilder::new().at(position_of(relevant_token)).of_type(ParsingErr)
     }
 
     fn expected_next_token_err(&self, info: &str) -> LoxError {

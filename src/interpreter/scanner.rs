@@ -62,10 +62,11 @@ impl Scanner {
                     if is_valid_variable_char(c) {
                         self.handle_literal(c)
                     } else {
-                        Err(ErrBuilder::at(pos)
+                        ErrBuilder::new()
+                            .at(pos)
                             .of_type(ScanningErr)
                             .with_message(format!("Unrecognized character {}", *c as u32))
-                            .build())
+                            .to_result()
                     }
                 }
             },
@@ -97,7 +98,6 @@ impl Scanner {
 
     fn handle_var_or_val_literal(&self, first_char: &char) -> LoxResult<Token> {
         let pos = self.reader.curr_pos();
-
         let mut buffer = String::new();
         buffer.push(*first_char);
 
@@ -107,10 +107,6 @@ impl Scanner {
             }
             self.reader.advance();
             buffer.push(*c);
-
-            if *c == '"' {
-                break;
-            }
         }
         Token::from_string(buffer, pos)
     }
@@ -194,8 +190,9 @@ fn is_valid_variable_char(c: &char) -> bool {
 }
 
 fn unexpected_eof_err<A>(pos: Position) -> LoxResult<A> {
-    Err(ErrBuilder::at(pos)
+    ErrBuilder::new()
+        .at(pos)
         .of_type(ScanningErr)
         .expected_but_found("next character", "end of file")
-        .build())
+        .to_result()
 }

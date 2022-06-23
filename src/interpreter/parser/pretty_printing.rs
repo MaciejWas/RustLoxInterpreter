@@ -43,6 +43,21 @@ impl PrettyPrint for Statement {
                 cond.pretty_print(pad + 1);
                 prog.pretty_print(pad + 1)
             }
+            Self::DefStmt(function_definition) => {
+                function_definition
+                    .args
+                    .iter()
+                    .for_each(|a| print_with_pad(format!("{:?}", a), pad + 1, true));
+
+                function_definition.body.pretty_print(pad + 1);
+
+                print_with_pad("returns: ".to_string(), pad + 1, true);
+                function_definition
+                    .result
+                    .clone()
+                    .map(|e: Expr| e.pretty_print(pad + 1))
+                    .unwrap_or_else(|| print_with_pad("Void".to_string(), pad + 1, true));
+            }
         }
     }
 }

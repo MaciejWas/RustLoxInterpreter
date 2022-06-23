@@ -16,6 +16,8 @@ print "FSADFASDFSADF";
 print 3333;
 
 var x = 0;
+print "current x:";
+print x;
 while (x != 10) {
     print "Hey, I'm increasing x";
     var x = x + 1;

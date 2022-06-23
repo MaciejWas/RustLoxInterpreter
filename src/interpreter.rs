@@ -1,12 +1,11 @@
 use crate::interpreter::execute::Executor;
 use crate::interpreter::parser::visitor::Visitor;
-use std::collections::HashMap;
 use std::fmt;
 use std::io;
 use std::io::Write;
 
 use errors::LoxError;
-use parser::{pretty_printing::PrettyPrint, Parser};
+use parser::{Parser};
 use scanner::Scanner;
 
 pub mod errors;
@@ -91,7 +90,7 @@ impl LoxInterpreter {
         }
     }
 
-    pub fn handle_err(&self, err: &std::io::Error) {}
+    pub fn handle_err(&self, _err: &std::io::Error) {}
 
     fn run(&mut self, statement: String) -> Result<String, LoxError> {
         let scanner_output = Scanner::new(statement.clone()).scan()?;

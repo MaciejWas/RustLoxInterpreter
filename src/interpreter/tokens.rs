@@ -62,18 +62,18 @@ impl Token {
     pub fn as_punct(&self) -> LoxResult<Punct> {
         match self {
             Self::PunctToken(punct, _) => Ok(punct.clone()),
-            _ => Err(ErrBuilder::at(position_of(self))
+            _ => ErrBuilder::new().at(position_of(self))
                 .is_not(self, "a lox value")
-                .build()),
+                .to_result(),
         }
     }
 
     pub fn as_lox_value(&self) -> LoxResult<LoxValue> {
         match self {
             Self::ValueToken(lox_val, _) => Ok(lox_val.clone()),
-            _ => Err(ErrBuilder::at(position_of(self))
+            _ => ErrBuilder::new().at(position_of(self))
                 .is_not(self, "a lox value")
-                .build()),
+                .to_result(),
         }
     }
 

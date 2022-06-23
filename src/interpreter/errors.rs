@@ -67,13 +67,17 @@ impl ErrBuilder {
         self
     }
 
-    pub fn at(pos: Position) -> Self {
-        ErrBuilder {
-            err_type: None,
-            message: None,
-            while_info: None,
-            pos: Some(pos.clone()),
-        }
+    pub fn without_pos(mut self) -> Self {
+        self.pos = Some(Position {
+            line: 0,
+            line_pos: 0,
+        }); // TODO: make it suck less
+        self
+    }
+
+    pub fn at(mut self, pos: Position) -> Self {
+        self.pos = Some(pos);
+        self
     }
 
     pub fn expected_but_found<E, F>(mut self, expected: E, found: F) -> Self
@@ -110,6 +114,15 @@ impl ErrBuilder {
         self
     }
 
+    pub fn cant_perform_a_on_b_and_c<A: std::fmt::Debug, B: std::fmt::Debug, C: std::fmt::Debug>(
+        self,
+        a: A,
+        b: B,
+        c: C,
+    ) -> ErrBuilder {
+        self.with_message(format!("Can't perform {:?} on {:?} and {:?}", a, b, c))
+    }
+
     pub fn reset(mut self) -> Self {
         self.err_type = None;
         self.message = None;
@@ -118,23 +131,34 @@ impl ErrBuilder {
         self
     }
 
-    pub fn build(self) -> LoxError {
-        let msg_core = self
-            .message
-            .unwrap_or_else(|| panic!("ErrBuilder failed: message was not supplied"));
+    pub fn to_result<A>(self) -> LoxResult<A> {
+        Err(self.build())
+    }
 
-        let while_info = self
+    pub fn build(self) -> LoxError {
+        let self_repr = format!("{:?}", &self);
+        let msg_core = &self.message.unwrap_or_else(|| {
+            panic!(
+                "ErrBuilder failed, message was not supplied: {:?}",
+                self_repr
+            )
+        });
+
+        let while_info = &self
             .while_info
             .map_or("".to_string(), |info| "\n\t While: ".to_string() + &info);
 
         LoxError {
-            msg: msg_core + &while_info,
-            err_type: self
-                .err_type
-                .unwrap_or_else(|| panic!("ErrBuilder failed: err_type was not supplied")),
-            pos: self
-                .pos
-                .unwrap_or_else(|| panic!("ErrBuilder failed: pos was not supplied")),
+            msg: msg_core.clone() + &while_info,
+            err_type: self.err_type.unwrap_or_else(|| {
+                panic!(
+                    "ErrBuilder failed: err_type was not supplied: {:?}",
+                    self_repr
+                )
+            }),
+            pos: self.pos.unwrap_or_else(|| {
+                panic!("ErrBuilder failed: pos was not supplied: {:?}", self_repr)
+            }),
         }
     }
 }

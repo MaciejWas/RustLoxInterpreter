@@ -4,7 +4,7 @@ pub trait ReaderBase<A> {
 
     /// Will return consecutive elements with each call. Will return None when every element has been returned. Satisfies:
     ///  * `advance() == peek()`,
-    ///  * `advance(); pos() == pos() + 1`,
+    ///  * `advance()?; pos() == pos() + 1`,
     ///  * `advance() == None` if and only if `pos() == v.len()` where v is the vector passed to the constructor `from_vec`.
     fn advance(&self) -> Option<&A>;
 

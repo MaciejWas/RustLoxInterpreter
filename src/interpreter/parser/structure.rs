@@ -1,7 +1,7 @@
 use super::visitor::*;
 use crate::interpreter::parser::Token;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Or2<A, B> {
     Opt1(A),
     Opt2(B),
@@ -10,46 +10,64 @@ pub enum Or2<A, B> {
 pub type Program = Vec<Statement>;
 pub type SubRules<A> = Vec<(Token, A)>;
 
+#[derive(Debug, Clone)]
 pub enum Statement {
     ExprStmt(Expr),
     PrintStmt(Expr),
     IfStmt(Expr, Program),
     LetStmt(LVal, RVal),
-    WhileLoop(Expr, Program)
+    WhileLoop(Expr, Program),
+    DefStmt(FunctionDefinition),
 }
 
+#[derive(Debug, Clone)]
+pub struct FunctionDefinition {
+    pub name: String,
+    pub args: Vec<Token>,
+    pub body: Program,
+    pub result: Option<Expr>,
+}
+
+#[derive(Debug, Clone)]
 pub struct LVal {
     pub identifier: String,
 }
 
+#[derive(Debug, Clone)]
 pub struct RVal {
     pub expr: Expr,
 }
 
+#[derive(Debug, Clone)]
 pub enum Expr {
     Eqlty(Eqlty),
 }
 
+#[derive(Debug, Clone)]
 pub struct Eqlty {
     pub first: Comp,
     pub rest: SubRules<Comp>,
 }
 
+#[derive(Debug, Clone)]
 pub struct Comp {
     pub first: Term,
     pub rest: SubRules<Term>,
 }
 
+#[derive(Debug, Clone)]
 pub struct Term {
     pub first: Factor,
     pub rest: SubRules<Factor>,
 }
 
+#[derive(Debug, Clone)]
 pub struct Factor {
     pub first: Unary,
     pub rest: SubRules<Unary>,
 }
 
+#[derive(Debug, Clone)]
 pub enum Unary {
     Final(Option<Token>, Token),
     Recursive(Option<Token>, Box<Expr>),
@@ -155,6 +173,7 @@ impl NamedType for Statement {
             Self::IfStmt(_, _) => "IfStatement",
             Self::LetStmt(_, _) => "LetStmt",
             Self::WhileLoop(_, _) => "WhileLoop",
+            Self::DefStmt(_) => "DefStmt",
         }
         .to_string()
     }

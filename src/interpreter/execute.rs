@@ -1,6 +1,6 @@
 pub use executing::Executor;
 
-mod binary_operations;
+mod definitions;
 mod executing;
+mod operations;
 mod state;
-mod objects;

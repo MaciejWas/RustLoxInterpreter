@@ -47,10 +47,11 @@ impl Kwd {
             "this" => Ok(Self::This),
             "var" => Ok(Self::Var),
             "while" => Ok(Self::While),
-            _ => Err(ErrBuilder::at(pos)
+            _ => ErrBuilder::new()
+                .at(pos)
                 .of_type(ScanningErr)
                 .with_message(format!("Could not create keywork token from {:?}", string))
-                .build()),
+                .to_result(),
         }
     }
 }
