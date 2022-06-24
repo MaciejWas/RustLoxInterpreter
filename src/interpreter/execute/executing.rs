@@ -26,6 +26,7 @@ impl Executor {
         }
     }
 
+    /// Creates new scope, does F, pops last scope. Generally used every time the executor goes into curly brackets.
     pub fn scoped<F, A>(&mut self, f: F) -> A
     where
         F: Fn(&mut Self) -> A,
@@ -52,7 +53,7 @@ impl Visitor<Statement, LoxResult<()>> for Executor {
     fn visit(&mut self, stmt: &Statement) -> LoxResult<()> {
         match stmt {
             Statement::ExprStmt(_) => {
-                println!("I am laze heheheheh")
+                println!("I am lazy heheheheh")
             }
             Statement::PrintStmt(expr) => {
                 let evaluated = self.visit(expr)?;
@@ -153,9 +154,9 @@ impl Visitor<Factor, LoxResult<LoxObj>> for Executor {
 impl Visitor<Unary, LoxResult<LoxObj>> for Executor {
     fn visit(&mut self, unary: &Unary) -> LoxResult<LoxObj> {
         match unary {
-            Unary::Final(None, token) => self.state.as_object(token),
+            Unary::Final(None, token) => self.as_lox_obj(token),
             Unary::Final(Some(op), token) => {
-                let lox_obj = self.state.as_object(token)?;
+                let lox_obj = self.as_lox_obj(token)?;
                 lox_obj.apply(|raw| unary_op(op, raw))
             }
             Unary::Recursive(None, expr) => self.visit(expr.as_ref()),
@@ -181,4 +182,17 @@ fn eval_fold(acc: LoxResult<LoxObj>, next: (&Token, LoxResult<LoxObj>)) -> LoxRe
     }
 
     panic!("TODO: not panic")
+}
+
+
+impl Executor {
+
+    /// Evaluates token to `LoxObj` if token is an identifier or value
+    fn as_lox_obj(&self, token: &Token) -> LoxResult<LoxObj> {
+        match token {
+            Token::IdentifierToken(id, pos) => self.state.get(id, pos.clone()),
+            Token::ValueToken(lox_val, _) => Ok(LoxObj::from(lox_val.clone())),
+            _ => Err(eval_err().at(position_of(token)).is_not(token, "a lox object").build()),
+        }
+    }
 }

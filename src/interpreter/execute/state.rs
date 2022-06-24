@@ -1,5 +1,6 @@
 //! Handling of bindings and scopes during runtime.
 
+use crate::interpreter::errors::position::Position;
 use crate::interpreter::errors::ErrBuilder;
 use crate::interpreter::errors::ErrType::LogicError;
 use crate::interpreter::errors::LoxResult;
@@ -63,33 +64,33 @@ impl State {
         Ok(())
     }
 
-    pub fn get(&self, identifier: &String) -> Option<LoxObj> {
+    pub fn get(&self, identifier: &String, pos: Position) -> LoxResult<LoxObj> {
         for scope in self.scope_stack.iter().rev() {
             let last_scope_search = scope.bindings.get(identifier);
             if last_scope_search.is_some() {
-                return last_scope_search.map(LoxObj::from);
+                return Ok(last_scope_search.map(LoxObj::from).unwrap());
             }
         }
-        None
+        self.err().with_pos(pos).with_message(format!("Variable {:?} is not in scope", identifier)).to_result()
     }
 
-    pub fn as_object(&self, token: &Token) -> LoxResult<LoxObj> {
-        let err = self
-            .err()
-            .with_pos(position_of(&token))
-            .while_(format!("Mapping {:?} to lox object", token));
+    // pub fn as_object(&self, token: &Token) -> LoxResult<LoxObj> {
+    //     let err = self
+    //         .err()
+    //         .with_pos(position_of(&token))
+    //         .while_(format!("Mapping {:?} to lox object", token));
 
-        match token {
-            Token::IdentifierToken(identifier, _) => self.get(identifier).ok_or(
-                err.with_message(format!("Variable {:?} is not in scope", identifier))
-                    .build(),
-            ),
-            Token::ValueToken(lox_val, _) => {
-                Ok(LoxObj::from(&RawLoxObject::Plain(lox_val.clone())))
-            }
-            _ => Err(err.is_not(token, "a lox object").build()),
-        }
-    }
+    //     match token {
+    //         Token::IdentifierToken(identifier, _) => self.get(identifier).ok_or(
+    //             err.with_message(format!("Variable {:?} is not in scope", identifier))
+    //                 .build(),
+    //         ),
+    //         Token::ValueToken(lox_val, _) => {
+    //             Ok(LoxObj::from(&RawLoxObject::Plain(lox_val.clone())))
+    //         }
+    //         _ => Err(err.is_not(token, "a lox object").build()),
+    //     }
+    // }
 
     fn err(&self) -> ErrBuilder {
         ErrBuilder::new().of_type(LogicError)
