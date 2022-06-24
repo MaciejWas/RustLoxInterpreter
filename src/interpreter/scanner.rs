@@ -1,3 +1,5 @@
+//! The scanner. Basically a pure function from a `String` to a `Vec<Token>`.
+
 use crate::interpreter::errors::position::Position;
 use crate::interpreter::errors::{ErrBuilder, ErrType::ScanningErr, LoxResult};
 

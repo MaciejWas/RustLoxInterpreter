@@ -1,8 +1,10 @@
 use std::env;
 
+
 pub mod interpreter;
 use interpreter::LoxInterpreter;
 
+/// Handles arguments from the command line and calls appropiate methods from `LoxInterpreter`.
 fn main() {
     let args: Vec<String> = env::args().collect();
     let mut interpreter = LoxInterpreter::new();

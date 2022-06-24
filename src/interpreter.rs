@@ -1,3 +1,5 @@
+//! The interpreter. Can either run a REPL or read a file with lox program.
+
 use crate::interpreter::execute::Executor;
 use crate::interpreter::parser::visitor::Visitor;
 use std::fmt;

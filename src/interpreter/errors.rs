@@ -1,3 +1,5 @@
+//! Provides `LoxError` class used for scanning/parsing/runtime errors as well as a builder utility class.
+
 use crate::interpreter::errors::position::Position;
 
 pub mod position;

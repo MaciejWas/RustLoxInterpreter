@@ -1,3 +1,5 @@
+//! A Visitor-style executor for `Vec<Statement>`.
+
 use crate::interpreter::{
     errors::position::Position,
     errors::LoxResult,

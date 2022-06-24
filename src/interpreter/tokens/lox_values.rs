@@ -4,7 +4,7 @@ use std::fmt::Formatter;
 
 #[derive(Clone, Eq, PartialEq)]
 pub enum LoxValue {
-    Integer(i32),
+    Integer(i16),
     Boolean(bool),
     String(String),
 }
@@ -19,8 +19,8 @@ impl Debug for LoxValue {
     }
 }
 
-impl From<i32> for LoxValue {
-    fn from(x: i32) -> Self {
+impl From<i16> for LoxValue {
+    fn from(x: i16) -> Self {
         LoxValue::Integer(x)
     }
 }

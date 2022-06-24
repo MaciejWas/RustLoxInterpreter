@@ -1,3 +1,5 @@
+//! The parser. Basically a pure function from a `Vec<Token>` to a `Vec<Statement>`.
+
 use crate::interpreter::errors::position::Position;
 use crate::interpreter::{
     errors::{ErrBuilder, ErrType::ParsingErr, LoxResult},
@@ -20,7 +22,11 @@ pub struct Parser {
 
 /// Parser á la recursive descent.
 /// Methods either correspond directly to grammar rules (`program`, `statement`, ..., `unary`) or
-/// are helper methods
+/// are helper methods.
+///
+/// Methods which correspond to grammar rules can have `decider` word in their name - it means
+/// that they do not progress the internal state but rather look ahead and determine which kind of grammar rule
+/// comes next, and then call specific method which does progress the iternal state.
 impl Parser {
     pub fn new(scanner_output: ScannerOutput) -> Self {
         Parser {
@@ -34,12 +40,15 @@ impl Parser {
 
     fn program(&self) -> LoxResult<Program> {
         let mut stmts = Vec::new();
-        while self
-            .token_reader
-            .peek()
-            .map_or(false, |t: &Token| !t.equals(&Eof))
-        {
-            stmts.push(self.statement_decider()?);
+        let can_progress = || {
+            self.token_reader
+                .peek()
+                .map(|t: &Token| !t.equals(&Eof))
+                .unwrap_or(false)
+        };
+        while can_progress() {
+            let next_stmt = self.statement_decider()?;
+            stmts.push(next_stmt);
             self.consume_punct(&Semicolon, "Reading statements")?;
         }
 
@@ -295,22 +304,21 @@ impl Parser {
     }
 
     fn consume_punct(&self, expected: &Punct, info: &str) -> LoxResult<()> {
-        let token = self.token_reader
-            .advance_or(
-                self.parsing_err()
-                    .expected_found_nothing(expected)
-                    .while_(info)
-                    .build(),
-            )?;
+        let token = self.token_reader.advance_or(
+            self.parsing_err()
+                .expected_found_nothing(expected)
+                .while_(info)
+                .build(),
+        )?;
         token.satisfies_or(
-                |t: &Token| t.equals(expected),
-                |t: &Token| {
-                    self.parsing_err()
-                        .expected_but_found(expected, t)
-                        .while_(info)
-                        .build()
-                }
-            )?;
+            |t: &Token| t.equals(expected),
+            |t: &Token| {
+                self.parsing_err()
+                    .expected_but_found(expected, t)
+                    .while_(info)
+                    .build()
+            },
+        )?;
         Ok(())
     }
 
@@ -343,10 +351,11 @@ impl Parser {
         )?;
         match token {
             Token::IdentifierToken(id, pos) => Ok((id.clone(), pos.clone())),
-            _ => self.parsing_err()
+            _ => self
+                .parsing_err()
                 .expected_but_found("identifier", token)
                 .while_(info)
-                .to_result()
+                .to_result(),
         }
     }
 }

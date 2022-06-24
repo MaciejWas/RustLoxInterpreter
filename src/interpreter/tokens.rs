@@ -47,7 +47,7 @@ impl Token {
         } else if Regex::new(VARIABLE_RE).unwrap().is_match(&string) {
             Ok(Self::IdentifierToken(string, position))
         } else if Regex::new(NUMBER_RE).unwrap().is_match(&string) {
-            let number: i32 = string.parse().expect("Failed to parse string as number");
+            let number: i16 = string.parse().expect("Failed to parse string as number");
             Ok(Self::ValueToken(LoxValue::from(number), position))
         } else if string.starts_with('\"') && string.ends_with('\"') {
             Ok(Self::ValueToken(LoxValue::from(string), position))

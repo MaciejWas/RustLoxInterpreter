@@ -1,3 +1,5 @@
+//! Handling of bindings and scopes during runtime.
+
 use crate::interpreter::errors::ErrBuilder;
 use crate::interpreter::errors::ErrType::LogicError;
 use crate::interpreter::errors::LoxResult;
