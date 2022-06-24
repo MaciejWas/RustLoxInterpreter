@@ -1,13 +1,13 @@
 use crate::interpreter::{
-    errors::position::Position, 
-    errors::LoxResult, 
+    errors::position::Position,
+    errors::LoxResult,
     execute::{
+        definitions::LoxObj,
         operations::{binary_operations, eval_err, unary_op},
-        definitions::LoxObj
     },
-    parser::structure::*, 
+    parser::structure::*,
     parser::visitor::*,
-    tokens::position_of, 
+    tokens::position_of,
     tokens::Token,
 };
 

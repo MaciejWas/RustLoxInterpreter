@@ -5,7 +5,7 @@ use std::io;
 use std::io::Write;
 
 use errors::LoxError;
-use parser::{Parser};
+use parser::Parser;
 use scanner::Scanner;
 
 pub mod errors;

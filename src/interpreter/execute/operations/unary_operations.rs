@@ -1,5 +1,4 @@
 use crate::interpreter::errors::{position::Position, ErrBuilder, ErrType::LogicError, LoxResult};
-use crate::interpreter::execute::definitions::LoxObj;
 use crate::interpreter::execute::definitions::RawLoxObject;
 use crate::interpreter::tokens::{position_of, LoxValue::Boolean, LoxValue::Integer, Punct, Token};
 

@@ -1,3 +1,4 @@
+use crate::interpreter::errors::position::Position;
 use crate::interpreter::{
     errors::{ErrBuilder, ErrType::ParsingErr, LoxResult},
     readers::{Reader, TokenReader},
@@ -76,13 +77,38 @@ impl Parser {
             Token::KwdToken(Kwd::If, _) => self.if_stmt(),
             Token::KwdToken(Kwd::Var, _) => self.var_stmt(),
             Token::KwdToken(Kwd::While, _) => self.while_stmt(),
+            Token::KwdToken(Kwd::Fun, _) => self.fn_def_stmt(),
             _ => self.expr_stmt(),
         }
     }
 
+    fn fn_def_stmt(&self) -> LoxResult<Statement> {
+        let process_descr = "Parsing function definition";
+
+        self.consume_kwd(&Kwd::Fun, process_descr)?;
+        let fn_name = self.token_reader.advance_or(
+            self.parsing_err()
+                .with_message("Expected function name".to_string())
+                .while_(process_descr)
+                .build(),
+        )?;
+
+        let (id, _) = self.consume_identifier("Expected function name")?;
+
+        let args: Vec<Token> = Vec::new(); //self.parse_fn_arguments();
+        let fn_body = self.scoped_program()?;
+        let fn_def = FunctionDefinition {
+            name: id.clone(),
+            args: args,
+            body: fn_body,
+        };
+
+        Ok(Statement::DefStmt(fn_def))
+    }
+
     fn while_stmt(&self) -> LoxResult<Statement> {
         self.consume_kwd(&Kwd::While, "")
-            .unwrap_or_else(|_err| panic!("error in statement decider"));
+            .unwrap_or_else(|_err| panic!("Error in statement decider. Attempted to parse a 'while statement' but no `while` keyword found"));
         let cond = self.parenthesized_expr()?;
         let prog = self.scoped_program()?;
         Ok(Statement::WhileLoop(cond, prog))
@@ -95,24 +121,16 @@ impl Parser {
     fn var_stmt(&self) -> LoxResult<Statement> {
         let info = "parsing assignment statement";
         self.consume_kwd(&Kwd::Var, info)?;
-        let var_name: &Token = self
-            .token_reader
-            .advance_or(self.expected_next_token_err(info))?;
 
-        if let Token::IdentifierToken(identifier, _) = var_name {
-            self.consume_punct(&Equal, info)?;
-            let expr = self.expression()?;
-            let lval = LVal {
-                identifier: identifier.clone(),
-            };
-            let rval = RVal { expr };
-            return Ok(Statement::LetStmt(lval, rval));
-        }
+        let (identifier, _) = self.consume_identifier(info)?;
+        self.consume_punct(&Equal, info)?;
 
-        Err(self
-            .parsing_err()
-            .expected_but_found("identifier", var_name)
-            .build())
+        let expr = self.expression()?;
+        let lval = LVal {
+            identifier: identifier,
+        };
+        let rval = RVal { expr };
+        return Ok(Statement::LetStmt(lval, rval));
     }
 
     fn print_stmt(&self) -> LoxResult<Statement> {
@@ -264,7 +282,9 @@ impl Parser {
             .unwrap_or_else(|| {
                 panic!("Failed to find the first token while generating error message.")
             });
-        ErrBuilder::new().at(position_of(relevant_token)).of_type(ParsingErr)
+        ErrBuilder::new()
+            .at(position_of(relevant_token))
+            .of_type(ParsingErr)
     }
 
     fn expected_next_token_err(&self, info: &str) -> LoxError {
@@ -275,21 +295,21 @@ impl Parser {
     }
 
     fn consume_punct(&self, expected: &Punct, info: &str) -> LoxResult<()> {
-        self.token_reader
+        let token = self.token_reader
             .advance_or(
                 self.parsing_err()
                     .expected_found_nothing(expected)
                     .while_(info)
                     .build(),
-            )?
-            .satisfies_or(
+            )?;
+        token.satisfies_or(
                 |t: &Token| t.equals(expected),
                 |t: &Token| {
                     self.parsing_err()
                         .expected_but_found(expected, t)
                         .while_(info)
                         .build()
-                },
+                }
             )?;
         Ok(())
     }
@@ -312,5 +332,21 @@ impl Parser {
                 },
             )?;
         Ok(())
+    }
+
+    fn consume_identifier(&self, info: &str) -> LoxResult<(String, Position)> {
+        let token = self.token_reader.advance_or(
+            self.parsing_err()
+                .expected_found_nothing("identifier")
+                .while_(info)
+                .build(),
+        )?;
+        match token {
+            Token::IdentifierToken(id, pos) => Ok((id.clone(), pos.clone())),
+            _ => self.parsing_err()
+                .expected_but_found("identifier", token)
+                .while_(info)
+                .to_result()
+        }
     }
 }

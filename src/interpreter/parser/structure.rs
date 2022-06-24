@@ -25,7 +25,6 @@ pub struct FunctionDefinition {
     pub name: String,
     pub args: Vec<Token>,
     pub body: Program,
-    pub result: Option<Expr>,
 }
 
 #[derive(Debug, Clone)]
