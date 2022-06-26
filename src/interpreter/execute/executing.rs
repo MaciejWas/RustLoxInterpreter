@@ -1,5 +1,6 @@
 //! A Visitor-style executor for `Vec<Statement>`.
 
+use crate::interpreter::parser::locator::locate;
 use crate::interpreter::{
     errors::position::Position,
     errors::LoxResult,
@@ -66,7 +67,7 @@ impl Visitor<Statement, LoxResult<()>> for Executor {
                     Some(false) => (),
                     None => {
                         return eval_err()
-                            .without_pos()
+                            .at(locate(&cond))
                             .with_message("could not evaluate if stmt condition".to_string())
                             .to_result()
                     }
@@ -88,13 +89,16 @@ impl Visitor<Statement, LoxResult<()>> for Executor {
                 self.scoped(|v| v.visit(program))?;
             },
             Statement::LetStmt(lval, rval) => {
+                let pos = locate(&rval.expr);
                 let right_evaluated = self.visit(&rval.expr)?;
-                self.state.bind(lval.identifier.clone(), right_evaluated)?;
+                self.state
+                    .bind(lval.identifier.clone(), right_evaluated, pos)?;
             }
-            Statement::DefStmt(function_definition) => {
+            Statement::DefStmt(pos, function_definition) => {
                 self.state.bind(
                     function_definition.name.clone(),
                     LoxObj::from(function_definition.clone()),
+                    *pos,
                 )?;
             }
         }
@@ -184,15 +188,16 @@ fn eval_fold(acc: LoxResult<LoxObj>, next: (&Token, LoxResult<LoxObj>)) -> LoxRe
     panic!("TODO: not panic")
 }
 
-
 impl Executor {
-
     /// Evaluates token to `LoxObj` if token is an identifier or value
     fn as_lox_obj(&self, token: &Token) -> LoxResult<LoxObj> {
         match token {
             Token::IdentifierToken(id, pos) => self.state.get(id, pos.clone()),
             Token::ValueToken(lox_val, _) => Ok(LoxObj::from(lox_val.clone())),
-            _ => Err(eval_err().at(position_of(token)).is_not(token, "a lox object").build()),
+            _ => Err(eval_err()
+                .at(position_of(token))
+                .is_not(token, "a lox object")
+                .build()),
         }
     }
 }

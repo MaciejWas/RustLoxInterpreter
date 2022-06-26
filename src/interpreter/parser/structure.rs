@@ -1,11 +1,6 @@
 use super::visitor::*;
+use crate::interpreter::parser::Position;
 use crate::interpreter::parser::Token;
-
-#[derive(Debug, Clone)]
-pub enum Or2<A, B> {
-    Opt1(A),
-    Opt2(B),
-}
 
 pub type Program = Vec<Statement>;
 pub type SubRules<A> = Vec<(Token, A)>;
@@ -17,7 +12,7 @@ pub enum Statement {
     IfStmt(Expr, Program),
     LetStmt(LVal, RVal),
     WhileLoop(Expr, Program),
-    DefStmt(FunctionDefinition),
+    DefStmt(Position, FunctionDefinition),
 }
 
 #[derive(Debug, Clone)]
@@ -172,7 +167,7 @@ impl NamedType for Statement {
             Self::IfStmt(_, _) => "IfStatement",
             Self::LetStmt(_, _) => "LetStmt",
             Self::WhileLoop(_, _) => "WhileLoop",
-            Self::DefStmt(_) => "DefStmt",
+            Self::DefStmt(_, _) => "DefStmt",
         }
         .to_string()
     }

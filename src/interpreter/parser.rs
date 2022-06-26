@@ -10,6 +10,7 @@ use crate::interpreter::{
     LoxError,
 };
 
+pub mod locator;
 pub mod pretty_printing;
 pub mod structure;
 pub mod visitor;
@@ -57,10 +58,10 @@ impl Parser {
 
     fn scoped_program(&self) -> LoxResult<Program> {
         let info = "Parsing scoped statements";
+
         self.consume_punct(&LeftBrace, info)?;
 
         let mut statements: Program = Vec::new();
-
         while !self
             .token_reader
             .peek_or(self.expected_next_token_err(info))?
@@ -93,6 +94,7 @@ impl Parser {
 
     fn fn_def_stmt(&self) -> LoxResult<Statement> {
         let process_descr = "Parsing function definition";
+        let pos = self.token_reader.peek().map(position_of);
 
         self.consume_kwd(&Kwd::Fun, process_descr)?;
         let fn_name = self.token_reader.advance_or(
@@ -112,19 +114,20 @@ impl Parser {
             body: fn_body,
         };
 
-        Ok(Statement::DefStmt(fn_def))
+        Ok(Statement::DefStmt(pos.unwrap(), fn_def))
     }
 
     fn while_stmt(&self) -> LoxResult<Statement> {
         self.consume_kwd(&Kwd::While, "")
-            .unwrap_or_else(|_err| panic!("Error in statement decider. Attempted to parse a 'while statement' but no `while` keyword found"));
+            .unwrap_or_else(|_err| panic!("Statement decider did something wrong. Attempted to parse a 'while statement' but no `while` keyword found"));
         let cond = self.parenthesized_expr()?;
         let prog = self.scoped_program()?;
         Ok(Statement::WhileLoop(cond, prog))
     }
 
     fn expr_stmt(&self) -> LoxResult<Statement> {
-        Ok(Statement::ExprStmt(self.expression()?))
+        let expr = self.expression_decider()?;
+        Ok(Statement::ExprStmt(expr))
     }
 
     fn var_stmt(&self) -> LoxResult<Statement> {
@@ -134,7 +137,7 @@ impl Parser {
         let (identifier, _) = self.consume_identifier(info)?;
         self.consume_punct(&Equal, info)?;
 
-        let expr = self.expression()?;
+        let expr = self.expression_decider()?;
         let lval = LVal {
             identifier: identifier,
         };
@@ -144,7 +147,7 @@ impl Parser {
 
     fn print_stmt(&self) -> LoxResult<Statement> {
         self.consume_kwd(&Kwd::Print, "Parsing `print statement`")?;
-        Ok(Statement::PrintStmt(self.expression()?))
+        Ok(Statement::PrintStmt(self.expression_decider()?))
     }
 
     fn if_stmt(&self) -> LoxResult<Statement> {
@@ -153,6 +156,14 @@ impl Parser {
         let condition = self.parenthesized_expr()?;
         let inside_if = self.scoped_program()?;
         Ok(Statement::IfStmt(condition, inside_if))
+    }
+
+    fn expression_decider(&self) -> LoxResult<Expr> {
+        let is_parenthesized = self.token_reader.peek().map(|t| t.equals(&LeftParen)).unwrap_or(false);
+        if is_parenthesized {
+            return self.parenthesized_expr();
+        }
+        self.expression()
     }
 
     fn expression(&self) -> LoxResult<Expr> {
@@ -190,11 +201,7 @@ impl Parser {
             .peek_or(self.expected_next_token_err("Parsing first token of a unary expression"))?;
 
         if first_token.equals(&LeftParen) {
-            let info = "Parsing parenthesized unary expression";
-            self.consume_punct(&LeftParen, info)?;
-            let unary_inside_parenth = self.unary_decider();
-            self.consume_punct(&RightParen, info)?;
-            return unary_inside_parenth;
+            return self.recursive_noop_unary();
         }
 
         if first_token.can_be_unary_op() {
@@ -233,6 +240,14 @@ impl Parser {
         }
     }
 
+    fn recursive_noop_unary(&self) -> LoxResult<Unary> {
+        let info = "Parsing parenthesized recursive unary expression";
+        self.consume_punct(&LeftParen, info)?;
+        let expr = self.expression()?;
+        self.consume_punct(&RightParen, info)?;
+        return Ok(Unary::Recursive(None, Box::new(expr)));
+    }
+
     fn unary_noop(&self) -> LoxResult<Unary> {
         let first_token = self.token_reader.advance().unwrap_or_else(|| {
             panic!("unary_noop should be called after making sure that next token exists")
@@ -254,7 +269,7 @@ impl Parser {
         let info = "Processing parenthesized expression";
 
         self.consume_punct(&LeftParen, info)?;
-        let expr_inside_parenth = self.expression()?;
+        let expr_inside_parenth = self.expression_decider()?;
         self.consume_punct(&RightParen, info)?;
 
         Ok(expr_inside_parenth)

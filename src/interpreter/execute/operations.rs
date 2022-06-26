@@ -1,4 +1,4 @@
-//! Logic related to unary and binary operators. 
+//! Logic related to unary and binary operators.
 
 pub use binary_operations::*;
 pub use unary_operations::*;

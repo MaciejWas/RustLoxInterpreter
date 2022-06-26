@@ -5,11 +5,10 @@ use crate::interpreter::errors::ErrBuilder;
 use crate::interpreter::errors::ErrType::LogicError;
 use crate::interpreter::errors::LoxResult;
 use crate::interpreter::execute::definitions::{LoxObj, RawLoxObject};
-use crate::interpreter::tokens::position_of;
-use crate::interpreter::tokens::Token;
 use std::collections::HashMap;
 use std::vec::Vec;
 
+/// Simply a scope. Used inside loops, functions, classes, etc.
 pub struct Scope {
     bindings: HashMap<String, RawLoxObject>,
     name: String,
@@ -41,27 +40,40 @@ impl State {
         self.scope_stack.pop().map(|_| ())
     }
 
-    pub fn bind(&mut self, identifier: String, obj: LoxObj) -> LoxResult<()> {
-        for scope in self.scope_stack.iter_mut() {
-            if scope.bindings.contains_key(&identifier) {
-                scope.bindings.insert(identifier, RawLoxObject::from(obj));
-                return Ok(());
+    pub fn bind(&mut self, identifier: String, obj: LoxObj, pos: Position) -> LoxResult<()> {
+        let could_not_insert_into_scope_err = self
+            .err()
+            .at(pos)
+            .with_message("Could not insert into scope".to_string())
+            .build();
+
+        let relevant_scope = self
+            .scope_stack
+            .iter_mut()
+            .filter(|scope| scope.bindings.contains_key(&identifier))
+            .last();
+
+        return match relevant_scope {
+            Some(scope) => {
+                let result = scope.bindings.insert(identifier, RawLoxObject::from(obj));
+                result.ok_or_else(|| could_not_insert_into_scope_err)?;
+                Ok(())
             }
-        }
-
-        self.scope_stack
-            .last_mut()
-            .ok_or_else(|| {
-                panic!(
-                    "Global stack is not present! (While binding {:?} to {:?})",
-                    obj.to_string(),
-                    identifier
-                )
-            })?
-            .bindings
-            .insert(identifier, RawLoxObject::from(obj));
-
-        Ok(())
+            None => {
+                self.scope_stack
+                    .last_mut()
+                    .ok_or_else(|| {
+                        panic!(
+                            "Global stack is not present! (While binding {:?} to {:?})",
+                            obj.to_string(),
+                            identifier
+                        )
+                    })?
+                    .bindings
+                    .insert(identifier, RawLoxObject::from(obj));
+                Ok(())
+            }
+        };
     }
 
     pub fn get(&self, identifier: &String, pos: Position) -> LoxResult<LoxObj> {
@@ -71,26 +83,11 @@ impl State {
                 return Ok(last_scope_search.map(LoxObj::from).unwrap());
             }
         }
-        self.err().with_pos(pos).with_message(format!("Variable {:?} is not in scope", identifier)).to_result()
+        self.err()
+            .with_pos(pos)
+            .with_message(format!("Variable {:?} is not in scope", identifier))
+            .to_result()
     }
-
-    // pub fn as_object(&self, token: &Token) -> LoxResult<LoxObj> {
-    //     let err = self
-    //         .err()
-    //         .with_pos(position_of(&token))
-    //         .while_(format!("Mapping {:?} to lox object", token));
-
-    //     match token {
-    //         Token::IdentifierToken(identifier, _) => self.get(identifier).ok_or(
-    //             err.with_message(format!("Variable {:?} is not in scope", identifier))
-    //                 .build(),
-    //         ),
-    //         Token::ValueToken(lox_val, _) => {
-    //             Ok(LoxObj::from(&RawLoxObject::Plain(lox_val.clone())))
-    //         }
-    //         _ => Err(err.is_not(token, "a lox object").build()),
-    //     }
-    // }
 
     fn err(&self) -> ErrBuilder {
         ErrBuilder::new().of_type(LogicError)

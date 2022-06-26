@@ -1,4 +1,4 @@
-#[derive(Clone, Eq, PartialEq, Debug)]
+#[derive(Clone, Copy, Eq, PartialEq, Debug)]
 pub struct Position {
     pub line: usize,
     pub line_pos: usize,

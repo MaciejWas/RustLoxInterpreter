@@ -1,6 +1,5 @@
 use std::env;
 
-
 pub mod interpreter;
 use interpreter::LoxInterpreter;
 

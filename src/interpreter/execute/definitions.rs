@@ -2,6 +2,7 @@ use crate::interpreter::errors::LoxResult;
 use crate::interpreter::parser::structure::FunctionDefinition;
 use crate::interpreter::tokens::LoxValue;
 
+/// Value which is held in the bindings
 pub enum RawLoxObject {
     Plain(LoxValue),
     Fun(FunctionDefinition),
@@ -18,6 +19,7 @@ impl RawLoxObject {
     }
 }
 
+/// Basically a pointer to `RawLoxObject` with some utility methods.
 pub struct LoxObj {
     ptr: Box<RawLoxObject>,
 }

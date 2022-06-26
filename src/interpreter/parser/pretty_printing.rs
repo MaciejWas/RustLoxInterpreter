@@ -43,7 +43,7 @@ impl PrettyPrint for Statement {
                 cond.pretty_print(pad + 1);
                 prog.pretty_print(pad + 1)
             }
-            Self::DefStmt(function_definition) => {
+            Self::DefStmt(_, function_definition) => {
                 function_definition
                     .args
                     .iter()

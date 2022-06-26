@@ -24,6 +24,11 @@ pub struct LoxError {
 }
 
 impl LoxError {
+    /// Generates a 3-line error message shown directly in the CLI. Looks smth like this:
+    /// |
+    /// | [line number] code
+    /// |                 ^ error message
+    ///
     pub fn generate_err_msg(&self, program: &String) -> String {
         let line = program.lines().nth(self.pos.line).unwrap_or_else(|| {
             panic!(
@@ -31,8 +36,17 @@ impl LoxError {
                 self.pos.line
             )
         });
-        let pointer: String = "-".to_string().repeat(self.pos.line_pos) + "^";
-        return [line, &pointer, &self.msg].join("\n");
+
+        let top_line = " |\n".to_string();
+        let middle_line_base = format!(" | [{}] ", self.pos.line + 1);
+        let bottom_line_pointer = " "
+            .to_string()
+            .repeat(self.pos.line_pos + middle_line_base.len() - " | ".len())
+            + "^";
+        let middle_line = middle_line_base + line + "\n";
+        let bottom_line = " | ".to_string() + &bottom_line_pointer + " " + &self.msg + "\n";
+
+        return [top_line, middle_line, bottom_line].join("");
     }
 }
 
@@ -146,9 +160,9 @@ impl ErrBuilder {
             )
         });
 
-        let while_info = &self
-            .while_info
-            .map_or("".to_string(), |info| "\n\t While: ".to_string() + &info);
+        let while_info = &self.while_info.map_or("".to_string(), |info| {
+            "\nError occured while: ".to_string() + &info
+        });
 
         LoxError {
             msg: msg_core.clone() + &while_info,
