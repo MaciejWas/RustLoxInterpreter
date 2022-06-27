@@ -82,14 +82,22 @@ impl Parser {
                 .while_("Parsing statement")
                 .build(),
         )?;
+
         match first_token {
             Token::KwdToken(Kwd::Print, _) => self.print_stmt(),
             Token::KwdToken(Kwd::If, _) => self.if_stmt(),
             Token::KwdToken(Kwd::Var, _) => self.var_stmt(),
             Token::KwdToken(Kwd::While, _) => self.while_stmt(),
             Token::KwdToken(Kwd::Fun, _) => self.fn_def_stmt(),
+            Token::KwdToken(Kwd::Return, _) => self.return_stmt(),
             _ => self.expr_stmt(),
         }
+    }
+
+    fn return_stmt(&self) -> LoxResult<Statement> {
+        self.consume_kwd(&Kwd::Return, "this basically cant fail")?;
+        let expr = self.expression_decider()?;
+        Ok(Statement::Return(expr))
     }
 
     fn fn_def_stmt(&self) -> LoxResult<Statement> {
@@ -99,15 +107,12 @@ impl Parser {
 
         let (fn_name, _) = self.consume_identifier("Expected function name")?;
         let args = self.fn_def_args()?;
-        let mut fn_body = self.scoped_program()?;
-        let ret = fn_body.pop();
-
+        let fn_body = self.scoped_program()?;
 
         let fn_def = FunctionDefinition {
             name: fn_name.clone(),
             args: args,
             body: fn_body,
-            ret: ret
         };
 
         Ok(Statement::DefStmt(pos.unwrap(), fn_def))

@@ -12,6 +12,7 @@ impl Visitor<Expr, Position> for Locator {
     fn visit(&mut self, expr: &Expr) -> Position {
         match expr {
             Expr::Eqlty(eqlty) => self.visit(eqlty),
+            Expr::Call(_, _) => panic!("TODO: impl"),
         }
     }
 }

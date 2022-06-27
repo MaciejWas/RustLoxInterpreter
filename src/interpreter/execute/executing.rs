@@ -1,8 +1,8 @@
 //! A Visitor-style executor for `Vec<Statement>`.
 
-use crate::interpreter::tokens::LoxValue;
-use std::iter::zip;
+use crate::interpreter::execute::executing_function::FuncExecutor;
 use crate::interpreter::parser::locator::locate;
+use crate::interpreter::tokens::LoxValue;
 use crate::interpreter::{
     errors::position::Position,
     errors::LoxResult,
@@ -15,6 +15,7 @@ use crate::interpreter::{
     tokens::position_of,
     tokens::Token,
 };
+use std::iter::zip;
 
 use super::state::State;
 
@@ -27,6 +28,10 @@ impl Executor {
         Executor {
             state: State::new(),
         }
+    }
+
+    pub fn from(state: State) -> Self {
+        Executor { state }
     }
 
     /// Creates new scope, does F, pops last scope. Generally used every time the executor goes into curly brackets.
@@ -103,6 +108,12 @@ impl Visitor<Statement, LoxResult<()>> for Executor {
                     *pos,
                 )?;
             }
+            Statement::Return(expr) => {
+                return eval_err()
+                    .at(locate(&expr))
+                    .with_message("return stmt outside function body".to_string())
+                    .to_result()
+            }
         }
         Ok(())
     }
@@ -132,14 +143,15 @@ impl Visitor<Expr, LoxResult<LoxObj>> for Executor {
                 for (arg_name, arg_evaluated) in zip(function.args, args_evaluated?) {
                     self.state.bind(arg_name, arg_evaluated, *pos);
                 }
-                
-                self.visit(&function.body)?;
-                
-                match function.ret {
-                    Some(expr) => self.visit(&expr),
-                    None => Ok(LoxObj::from(LoxValue::from(0)))
-                }
+
+                FuncExecutor::from(self.clone());
+
+                // match function.ret {
+                // Some(expr) => self.visit(&expr),
+                Ok(LoxObj::from(LoxValue::from(0)))
+                // }
             }
+            _ => panic!("todo: impl"),
         }
     }
 }

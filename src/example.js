@@ -14,7 +14,7 @@ if (1==2) {
 };
 print "FSADFASDFSADF";
 print 3333;
-
+return 3;
 var x = 0;
 print "current x:";
 print x;
@@ -25,5 +25,6 @@ while (x != 10) {
 print x;
 
 fun add(x, y) {
+    print "hey im inside function :))";
     x + y;
 };

@@ -29,6 +29,10 @@ impl PrettyPrint for Statement {
     fn pretty_print(&self, pad: u8) {
         print_with_pad(self.type_name() + ":", pad, true);
         match self {
+            Self::Return(expr) => {
+                print_with_pad("return of:".to_string(), pad, false);
+                expr.pretty_print(pad + 1)
+            }
             Self::LetStmt(lval, rval) => {
                 print_with_pad(format!("{}", lval.identifier), pad, true);
                 rval.expr.pretty_print(pad + 1);
@@ -60,6 +64,9 @@ impl PrettyPrint for Expr {
         print_with_pad(self.type_name(), pad, true);
         match self {
             Self::Eqlty(eqlty) => eqlty.pretty_print(pad + 1),
+            Self::Call(_, _) => {
+                panic!("todo: impl")
+            }
         }
     }
 }

@@ -13,6 +13,7 @@ pub enum Statement {
     LetStmt(LVal, RVal),
     WhileLoop(Expr, Program),
     DefStmt(Position, FunctionDefinition),
+    Return(Expr),
 }
 
 #[derive(Debug, Clone)]
@@ -20,7 +21,6 @@ pub struct FunctionDefinition {
     pub name: String,
     pub args: Vec<String>,
     pub body: Program,
-    pub ret: Option<Statement>,
 }
 
 #[derive(Debug, Clone)]
@@ -170,6 +170,7 @@ impl NamedType for Statement {
             Self::LetStmt(_, _) => "LetStmt",
             Self::WhileLoop(_, _) => "WhileLoop",
             Self::DefStmt(_, _) => "DefStmt",
+            Self::Return(_) => "Return",
         }
         .to_string()
     }
