@@ -5,7 +5,7 @@ use super::ReaderBase;
 use std::cell::Cell;
 
 pub struct TokenReader {
-    tokens: Vec<Token>,
+    pub tokens: Vec<Token>,
     pos: Cell<usize>,
 }
 

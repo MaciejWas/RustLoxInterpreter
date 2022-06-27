@@ -23,3 +23,7 @@ while (x != 10) {
     var x = x + 1;
 };
 print x;
+
+fun add(x, y) {
+    x + y;
+};

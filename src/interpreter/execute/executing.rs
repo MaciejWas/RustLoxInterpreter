@@ -1,11 +1,13 @@
 //! A Visitor-style executor for `Vec<Statement>`.
 
+use crate::interpreter::tokens::LoxValue;
+use std::iter::zip;
 use crate::interpreter::parser::locator::locate;
 use crate::interpreter::{
     errors::position::Position,
     errors::LoxResult,
     execute::{
-        definitions::LoxObj,
+        definitions::{LoxObj, RawLoxObject},
         operations::{binary_operations, eval_err, unary_op},
     },
     parser::structure::*,
@@ -110,6 +112,34 @@ impl Visitor<Expr, LoxResult<LoxObj>> for Executor {
     fn visit(&mut self, expr: &Expr) -> LoxResult<LoxObj> {
         match expr {
             Expr::Eqlty(eqlty) => self.visit(eqlty),
+            Expr::Call(Token::IdentifierToken(function_name, pos), args) => {
+                let called_object = self.state.get(function_name, *pos)?;
+                let function = called_object.transform(|raw| match raw {
+                    RawLoxObject::Fun(function_def) => Ok(function_def),
+                    _ => eval_err()
+                        .at(*pos)
+                        .is_not(raw.to_string(), "callable")
+                        .to_result(),
+                })?;
+
+                let args_evaluated: LoxResult<Vec<LoxObj>> = args
+                    .into_iter()
+                    .map(|arg_expr| self.visit(arg_expr))
+                    .collect();
+
+                self.state.push_new_scope();
+
+                for (arg_name, arg_evaluated) in zip(function.args, args_evaluated?) {
+                    self.state.bind(arg_name, arg_evaluated, *pos);
+                }
+                
+                self.visit(&function.body)?;
+                
+                match function.ret {
+                    Some(expr) => self.visit(&expr),
+                    None => Ok(LoxObj::from(LoxValue::from(0)))
+                }
+            }
         }
     }
 }

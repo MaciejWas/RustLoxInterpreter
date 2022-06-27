@@ -18,8 +18,9 @@ pub enum Statement {
 #[derive(Debug, Clone)]
 pub struct FunctionDefinition {
     pub name: String,
-    pub args: Vec<Token>,
+    pub args: Vec<String>,
     pub body: Program,
+    pub ret: Option<Statement>,
 }
 
 #[derive(Debug, Clone)]
@@ -35,6 +36,7 @@ pub struct RVal {
 #[derive(Debug, Clone)]
 pub enum Expr {
     Eqlty(Eqlty),
+    Call(Token, Vec<Expr>),
 }
 
 #[derive(Debug, Clone)]

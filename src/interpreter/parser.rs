@@ -95,44 +95,46 @@ impl Parser {
     fn fn_def_stmt(&self) -> LoxResult<Statement> {
         let process_descr = "Parsing function definition";
         let pos = self.token_reader.peek().map(position_of);
-
         self.consume_kwd(&Kwd::Fun, process_descr)?;
-        let fn_name = self.token_reader.advance_or(
-            self.parsing_err()
-                .with_message("Expected function name".to_string())
-                .while_(process_descr)
-                .build(),
-        )?;
 
-        let (id, _) = self.consume_identifier("Expected function name")?;
+        let (fn_name, _) = self.consume_identifier("Expected function name")?;
+        let args = self.fn_def_args()?;
+        let mut fn_body = self.scoped_program()?;
+        let ret = fn_body.pop();
 
-        let args: Vec<Expr> = self.parse_fn_arguments();
-        let fn_body = self.scoped_program()?;
+
         let fn_def = FunctionDefinition {
-            name: id.clone(),
+            name: fn_name.clone(),
             args: args,
             body: fn_body,
+            ret: ret
         };
 
         Ok(Statement::DefStmt(pos.unwrap(), fn_def))
     }
 
-    fn fn_def_args(&self) -> LoxResult<Vec<Token>> {
+    fn fn_def_args(&self) -> LoxResult<Vec<String>> {
         let info = "parsing function definition arguments";
+        let next_token_is_comma = || {
+            self.token_reader
+                .peek()
+                .map(|t| t.equals(&Comme))
+                .unwrap_or(false)
+        };
         let mut args = Vec::new();
 
         self.consume_punct(&LeftParen, info)?;
-
-        while self.consume_punct(&RightParen, info).is_ok() {
-            let next_arg = self.token_reader.advance()?;
-            match next_arg {
-                IdentifierToken(id, pos) => args.push(next_arg),
-                _ => return self.parsing_err().
+        while next_token_is_comma() || args.is_empty() {
+            if next_token_is_comma() {
+                self.token_reader.advance();
             }
-            args.push(next_arg);
-            self.consume_punct(&Comma, info)?;
+
+            let (id, pos) = self.consume_identifier("parsing function definition arguments")?;
+            args.push(id);
+            println!("loop done");
         }
-        
+
+        self.consume_punct(&RightParen, info)?;
         Ok(args)
     }
 
@@ -142,12 +144,13 @@ impl Parser {
 
         self.consume_punct(&LeftParen, info)?;
 
-        while self.consume_punct(&RightParen, info).is_ok() {
-            let next_arg = self.expr_decider()?;
+        while self.consume_punct(&Comme, info).is_ok() {
+            let next_arg = self.expression_decider()?;
             args.push(next_arg);
-            self.consume_punct(&Comma, info)?;
         }
-        
+
+        self.consume_punct(&RightBrace, info)?;
+
         Ok(args)
     }
 
@@ -193,7 +196,11 @@ impl Parser {
     }
 
     fn expression_decider(&self) -> LoxResult<Expr> {
-        let is_parenthesized = self.token_reader.peek().map(|t| t.equals(&LeftParen)).unwrap_or(false);
+        let is_parenthesized = self
+            .token_reader
+            .peek()
+            .map(|t| t.equals(&LeftParen))
+            .unwrap_or(false);
         if is_parenthesized {
             return self.parenthesized_expr();
         }
