@@ -106,7 +106,7 @@ impl Parser {
 
         let (id, _) = self.consume_identifier("Expected function name")?;
 
-        let args: Vec<Token> = Vec::new(); //self.parse_fn_arguments();
+        let args: Vec<Expr> = self.parse_fn_arguments();
         let fn_body = self.scoped_program()?;
         let fn_def = FunctionDefinition {
             name: id.clone(),
@@ -115,6 +115,40 @@ impl Parser {
         };
 
         Ok(Statement::DefStmt(pos.unwrap(), fn_def))
+    }
+
+    fn fn_def_args(&self) -> LoxResult<Vec<Token>> {
+        let info = "parsing function definition arguments";
+        let mut args = Vec::new();
+
+        self.consume_punct(&LeftParen, info)?;
+
+        while self.consume_punct(&RightParen, info).is_ok() {
+            let next_arg = self.token_reader.advance()?;
+            match next_arg {
+                IdentifierToken(id, pos) => args.push(next_arg),
+                _ => return self.parsing_err().
+            }
+            args.push(next_arg);
+            self.consume_punct(&Comma, info)?;
+        }
+        
+        Ok(args)
+    }
+
+    fn fn_arguments(&self) -> LoxResult<Vec<Expr>> {
+        let info = "parsing function arguments";
+        let mut args = Vec::new();
+
+        self.consume_punct(&LeftParen, info)?;
+
+        while self.consume_punct(&RightParen, info).is_ok() {
+            let next_arg = self.expr_decider()?;
+            args.push(next_arg);
+            self.consume_punct(&Comma, info)?;
+        }
+        
+        Ok(args)
     }
 
     fn while_stmt(&self) -> LoxResult<Statement> {
