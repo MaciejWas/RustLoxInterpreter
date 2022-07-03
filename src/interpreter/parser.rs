@@ -129,14 +129,19 @@ impl Parser {
         let mut args = Vec::new();
 
         self.consume_punct(&LeftParen, info)?;
+
         while next_token_is_comma() || args.is_empty() {
             if next_token_is_comma() {
                 self.token_reader.advance();
             }
 
+            if self.token_reader.peek().map(|t| t.equals(&Punct::RightParen)).unwrap_or(false) {
+                self.token_reader.advance();
+                return Ok(args)
+            }
+
             let (id, pos) = self.consume_identifier("parsing function definition arguments")?;
             args.push(id);
-            println!("loop done");
         }
 
         self.consume_punct(&RightParen, info)?;
@@ -298,6 +303,12 @@ impl Parser {
         let first_token = self.token_reader.advance().unwrap_or_else(|| {
             panic!("unary_noop should be called after making sure that next token exists")
         });
+
+        let is_followed_by_parenth = self.token_reader.peek().map(|t| t.equals(&Punct::LeftParen)).unwrap_or(false);
+        if is_followed_by_parenth {
+            return self.call(None, first_token.clone());
+        }
+
         match first_token {
             Token::ValueToken(_, _) => Ok(Unary::Final(None, first_token.clone())),
             Token::IdentifierToken(_, _) => Ok(Unary::Final(None, first_token.clone())),
@@ -309,6 +320,26 @@ impl Parser {
                 .expected_but_found("unary expression", first_token)
                 .build()),
         }
+    }
+
+    fn call(&self, op: Option<Token>, fn_name: Token) -> LoxResult<Unary> {
+        let info = "parsing call unary expr";
+        let mut args = Vec::new();
+
+        self.consume_punct(&LeftParen, info)?;
+        args.push(Box::new(self.expression_decider()?));
+        
+        let is_comma = |t: &Token| t.equals(&Punct::Comme);
+
+        while self.token_reader.peek().map(is_comma).unwrap_or(false) {
+            self.consume_punct(&Punct::Comme, info)?;
+            let next_arg = Box::new(self.expression_decider()?);
+            args.push(next_arg);
+        }
+
+        self.consume_punct(&RightParen, info)?;
+
+        Ok (Unary::Call(op, fn_name, args))
     }
 
     fn parenthesized_expr(&self) -> LoxResult<Expr> {

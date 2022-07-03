@@ -1,6 +1,5 @@
 //! A Visitor-style executor for `Vec<Statement>`.
 
-use crate::interpreter::execute::executing_function::FuncExecutor;
 use crate::interpreter::parser::locator::locate;
 use crate::interpreter::tokens::LoxValue;
 use crate::interpreter::{
@@ -18,6 +17,20 @@ use crate::interpreter::{
 use std::iter::zip;
 
 use super::state::State;
+
+pub struct EvaluatedStmt {
+    pub returned: Option<LoxObj>
+}
+
+pub struct EvaluatedProgram {
+    pub returned: Option<LoxObj>
+}
+
+impl From<EvaluatedStmt> for EvaluatedProgram {
+    fn from(evaluated_stmt: EvaluatedStmt) -> Self { 
+        EvaluatedProgram { returned: evaluated_stmt.returned }
+    } 
+}
 
 pub struct Executor {
     pub state: State,
@@ -48,17 +61,21 @@ impl Executor {
     }
 }
 
-impl Visitor<Program, LoxResult<()>> for Executor {
-    fn visit(&mut self, p: &Program) -> LoxResult<()> {
+impl Visitor<Program, LoxResult<EvaluatedProgram>> for Executor {
+    fn visit(&mut self, p: &Program) -> LoxResult<EvaluatedProgram> {
         for stmt in p.iter() {
-            self.visit(stmt)?;
+            let evaluated_stmt = self.visit(stmt)?;
+            if evaluated_stmt.returned.is_some() {
+                return Ok(EvaluatedProgram::from(evaluated_stmt))
+            }
+
         }
-        Ok(())
+        Ok(EvaluatedProgram {returned: None} )
     }
 }
 
-impl Visitor<Statement, LoxResult<()>> for Executor {
-    fn visit(&mut self, stmt: &Statement) -> LoxResult<()> {
+impl Visitor<Statement, LoxResult<EvaluatedStmt>> for Executor {
+    fn visit(&mut self, stmt: &Statement) -> LoxResult<EvaluatedStmt> {
         match stmt {
             Statement::ExprStmt(_) => {
                 println!("I am lazy heheheheh")
@@ -70,7 +87,9 @@ impl Visitor<Statement, LoxResult<()>> for Executor {
             Statement::IfStmt(cond, program) => {
                 let cond_evaluated = self.visit(cond)?;
                 match Option::<bool>::from(cond_evaluated) {
-                    Some(true) => self.scoped(|v| v.visit(program))?,
+                    Some(true) => {
+                        self.scoped(|v| v.visit(program))?;
+                    },
                     Some(false) => (),
                     None => {
                         return eval_err()
@@ -109,13 +128,11 @@ impl Visitor<Statement, LoxResult<()>> for Executor {
                 )?;
             }
             Statement::Return(expr) => {
-                return eval_err()
-                    .at(locate(&expr))
-                    .with_message("return stmt outside function body".to_string())
-                    .to_result()
+                let evaluated_expr = self.visit(expr)?;
+                return Ok( EvaluatedStmt { returned: Some(evaluated_expr) } )
             }
         }
-        Ok(())
+        Ok(EvaluatedStmt { returned: None })
     }
 }
 
@@ -123,12 +140,13 @@ impl Visitor<Expr, LoxResult<LoxObj>> for Executor {
     fn visit(&mut self, expr: &Expr) -> LoxResult<LoxObj> {
         match expr {
             Expr::Eqlty(eqlty) => self.visit(eqlty),
-            Expr::Call(Token::IdentifierToken(function_name, pos), args) => {
-                let called_object = self.state.get(function_name, *pos)?;
+            Expr::Call(token, args) => {
+                let pos = position_of(token);
+                let called_object = self.as_lox_obj(token)?;
                 let function = called_object.transform(|raw| match raw {
                     RawLoxObject::Fun(function_def) => Ok(function_def),
                     _ => eval_err()
-                        .at(*pos)
+                        .at(pos)
                         .is_not(raw.to_string(), "callable")
                         .to_result(),
                 })?;
@@ -141,17 +159,19 @@ impl Visitor<Expr, LoxResult<LoxObj>> for Executor {
                 self.state.push_new_scope();
 
                 for (arg_name, arg_evaluated) in zip(function.args, args_evaluated?) {
-                    self.state.bind(arg_name, arg_evaluated, *pos);
+                    self.state.bind(arg_name, arg_evaluated, pos)?;
                 }
 
-                FuncExecutor::from(self.clone());
+                let program_result = self.visit(&function.body)?;
 
-                // match function.ret {
-                // Some(expr) => self.visit(&expr),
-                Ok(LoxObj::from(LoxValue::from(0)))
-                // }
+                self.state.pop_last_scope();
+
+                match program_result.returned {
+                    Some(obj) => Ok(obj),
+                    None => Ok(LoxObj::from(LoxValue::from(0)))
+                }
             }
-            _ => panic!("todo: impl"),
+
         }
     }
 }
@@ -209,6 +229,16 @@ impl Visitor<Unary, LoxResult<LoxObj>> for Executor {
             Unary::Recursive(Some(op), expr) => {
                 let evaluated_expression = self.visit(expr.as_ref())?;
                 evaluated_expression.apply(|raw| unary_op(op, raw))
+            },
+            Unary::Call(_op, fn_name, args) => {
+                // TODO: process op
+                let func = self.as_lox_obj(fn_name)?;
+                let args_evaluated: LoxResult<Vec<LoxObj>> = args
+                    .into_iter()
+                    .map(|arg_expr| self.visit(arg_expr.as_ref()))
+                    .collect();
+                    
+                self.call(func, args_evaluated?, position_of(fn_name))
             }
         }
     }
@@ -241,5 +271,30 @@ impl Executor {
                 .is_not(token, "a lox object")
                 .build()),
         }
+    }
+
+    fn call(&mut self, func: LoxObj, args: Vec<LoxObj>, pos: Position) -> LoxResult<LoxObj> {
+        let function = func.transform(|raw| match raw {
+            RawLoxObject::Fun(function_def) => Ok(function_def),
+            _ => eval_err()
+                .at(pos)
+                .is_not(raw.to_string(), "callable")
+                .to_result(),
+        })?;
+        
+        self.state.push_new_scope();
+        
+        for (arg_name, arg_evaluated) in zip(function.args, args) {
+            self.state.bind(arg_name, arg_evaluated, pos)?;
+        }
+        let program_result = self.visit(&function.body)?;
+
+        self.state.pop_last_scope();
+
+        match program_result.returned {
+            Some(obj) => Ok(obj),
+            None => Ok(LoxObj::from(LoxValue::from(0)))
+        }
+        
     }
 }

@@ -129,6 +129,9 @@ impl PrettyPrint for Unary {
                 print_with_pad(format!("{:?}", op), pad, true);
                 expr.pretty_print(pad + 1)
             }
+            Self::Call(op, token, expr) => {
+                todo!()
+            }
         }
     }
 }

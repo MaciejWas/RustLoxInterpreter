@@ -48,6 +48,8 @@ impl Visitor<Unary, Position> for Locator {
             Unary::Final(Some(op), _) => position_of(op),
             Unary::Recursive(None, expr) => self.visit(expr.as_ref()),
             Unary::Recursive(Some(op), expr) => position_of(op),
+            Unary::Call(Some(op), _, _) => position_of(op),
+            Unary::Call(None, t, _) => position_of(t)
         }
     }
 }

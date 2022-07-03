@@ -14,7 +14,7 @@ if (1==2) {
 };
 print "FSADFASDFSADF";
 print 3333;
-return 3;
+
 var x = 0;
 print "current x:";
 print x;
@@ -26,5 +26,15 @@ print x;
 
 fun add(x, y) {
     print "hey im inside function :))";
-    x + y;
+    return x + y;
 };
+
+
+fun x() {
+    return 0;
+};
+
+var y = add(3, 3);
+var z = x();
+print y;
+print z;
