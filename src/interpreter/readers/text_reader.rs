@@ -48,8 +48,8 @@ impl ReaderBase<char> for TextReader {
         output
     }
 
-    fn peek(&self) -> Option<&char> {
-        self.source.get(self.pos.get())
+    fn peek_n(&self, n: usize) -> Option<&char> {
+        self.source.get(self.pos.get() + n)
     }
 
     fn previous(&self) -> Option<&char> {

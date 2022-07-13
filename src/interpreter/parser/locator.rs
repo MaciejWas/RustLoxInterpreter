@@ -1,6 +1,8 @@
 use crate::interpreter::parser::*;
 use crate::interpreter::Visitor;
 
+
+/// Maps an expression to the position of its first token. Slow and temporary solution.
 pub struct Locator;
 
 pub fn locate(expr: &Expr) -> Position {

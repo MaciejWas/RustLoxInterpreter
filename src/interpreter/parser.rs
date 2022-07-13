@@ -41,14 +41,8 @@ impl Parser {
 
     fn program(&self) -> LoxResult<Program> {
         let mut stmts = Vec::new();
-        let can_progress = || {
-            self.token_reader
-                .peek()
-                .map(|t: &Token| !t.equals(&Eof))
-                .unwrap_or(false)
-        };
-        while can_progress() {
-            let next_stmt = self.statement_decider()?;
+        while !self.is_finished() {
+            let next_stmt = self.statement()?;
             stmts.push(next_stmt);
             self.consume_punct(&Semicolon, "Reading statements")?;
         }
@@ -56,26 +50,46 @@ impl Parser {
         Ok(stmts)
     }
 
-    fn scoped_program(&self) -> LoxResult<Program> {
-        let info = "Parsing scoped statements";
-
-        self.consume_punct(&LeftBrace, info)?;
-
-        let mut statements: Program = Vec::new();
-        while !self
-            .token_reader
-            .peek_or(self.expected_next_token_err(info))?
-            .equals(&RightBrace)
-        {
-            statements.push(self.statement_decider()?);
-            self.consume_punct(&Semicolon, info)?;
-        }
-        self.consume_punct(&RightBrace, "after reading scoped program")?;
-
-        Ok(statements)
+    fn is_finished(&self) -> bool {
+        self.token_reader
+                .peek()
+                .map(|t: &Token| t.equals(&Eof))
+                .unwrap_or(false)
     }
 
-    fn statement_decider(&self) -> LoxResult<Statement> {
+    fn scoped_program(&self) -> LoxResult<Program> {
+        let info = "Parsing scoped statements";
+        let end_of_scope = || self.token_reader.peek().map(|t| !t.equals(&Punct::RightBrace)).unwrap_or(false);
+        self.consume_punct(&LeftBrace, info)?;
+
+        let mut program = Vec::new();
+        while !end_of_scope() {
+            let next_stmt = self.statement()?;
+            program.push(next_stmt);
+            self.consume_punct(&Semicolon, "Reading statements")?;
+        }
+
+
+        self.consume_punct(&RightBrace, info)?;
+        Ok(program)
+    }
+
+    fn statement(&self) -> LoxResult<Statement> {
+        let stmt_kind = self.statement_decider()?;
+        println!("parsing {:?}", stmt_kind);
+        let stmt = match stmt_kind {
+            StatementKind::ExprStmt => self.expr_stmt(),
+            StatementKind::DefStmt => self.function_definition(),
+            StatementKind::LetStmt => self.var_stmt(),
+            StatementKind::IfStmt => self.if_stmt(),
+            StatementKind::Return => self.return_(),
+            StatementKind::WhileLoop => self.while_stmt(),
+            StatementKind::PrintStmt => self.print_stmt()
+        };
+        Ok(stmt?)
+    }
+
+    fn statement_decider(&self) -> LoxResult<StatementKind> {
         let first_token = self.token_reader.peek_or(
             self.parsing_err()
                 .expected_found_nothing("first token of a statement")
@@ -84,26 +98,25 @@ impl Parser {
         )?;
 
         match first_token {
-            Token::KwdToken(Kwd::Print, _) => self.print_stmt(),
-            Token::KwdToken(Kwd::If, _) => self.if_stmt(),
-            Token::KwdToken(Kwd::Var, _) => self.var_stmt(),
-            Token::KwdToken(Kwd::While, _) => self.while_stmt(),
-            Token::KwdToken(Kwd::Fun, _) => self.fn_def_stmt(),
-            Token::KwdToken(Kwd::Return, _) => self.return_stmt(),
-            _ => self.expr_stmt(),
+            Token::KwdToken(Kwd::Print, _) => Ok(StatementKind::PrintStmt),
+            Token::KwdToken(Kwd::If, _) => Ok(StatementKind::IfStmt),
+            Token::KwdToken(Kwd::Var, _) => Ok(StatementKind::LetStmt),
+            Token::KwdToken(Kwd::While, _) => Ok(StatementKind::WhileLoop),
+            Token::KwdToken(Kwd::Fun, _) => Ok(StatementKind::DefStmt),
+            Token::KwdToken(Kwd::Return, _) => Ok(StatementKind::Return),
+            _ => Ok(StatementKind::ExprStmt),
         }
     }
 
-    fn return_stmt(&self) -> LoxResult<Statement> {
+    fn return_(&self) -> LoxResult<Statement> {
         self.consume_kwd(&Kwd::Return, "this basically cant fail")?;
-        let expr = self.expression_decider()?;
+        let expr = self.expression()?;
         Ok(Statement::Return(expr))
     }
 
-    fn fn_def_stmt(&self) -> LoxResult<Statement> {
-        let process_descr = "Parsing function definition";
+    fn function_definition(&self) -> LoxResult<Statement> {
         let pos = self.token_reader.peek().map(position_of);
-        self.consume_kwd(&Kwd::Fun, process_descr)?;
+        self.consume_kwd(&Kwd::Fun, "Parsing function definition")?;
 
         let (fn_name, _) = self.consume_identifier("Expected function name")?;
         let args = self.fn_def_args()?;
@@ -126,6 +139,9 @@ impl Parser {
                 .map(|t| t.equals(&Comme))
                 .unwrap_or(false)
         };
+        let reached_end_of_args = || {
+            self.token_reader.peek().map(|t| t.equals(&Punct::RightParen)).unwrap_or(false)
+        };
         let mut args = Vec::new();
 
         self.consume_punct(&LeftParen, info)?;
@@ -135,32 +151,16 @@ impl Parser {
                 self.token_reader.advance();
             }
 
-            if self.token_reader.peek().map(|t| t.equals(&Punct::RightParen)).unwrap_or(false) {
+            if reached_end_of_args() {
                 self.token_reader.advance();
                 return Ok(args)
             }
 
-            let (id, pos) = self.consume_identifier("parsing function definition arguments")?;
+            let (id, _) = self.consume_identifier("parsing function definition arguments")?;
             args.push(id);
         }
 
         self.consume_punct(&RightParen, info)?;
-        Ok(args)
-    }
-
-    fn fn_arguments(&self) -> LoxResult<Vec<Expr>> {
-        let info = "parsing function arguments";
-        let mut args = Vec::new();
-
-        self.consume_punct(&LeftParen, info)?;
-
-        while self.consume_punct(&Comme, info).is_ok() {
-            let next_arg = self.expression_decider()?;
-            args.push(next_arg);
-        }
-
-        self.consume_punct(&RightBrace, info)?;
-
         Ok(args)
     }
 
@@ -173,7 +173,7 @@ impl Parser {
     }
 
     fn expr_stmt(&self) -> LoxResult<Statement> {
-        let expr = self.expression_decider()?;
+        let expr = self.expression()?;
         Ok(Statement::ExprStmt(expr))
     }
 
@@ -184,7 +184,7 @@ impl Parser {
         let (identifier, _) = self.consume_identifier(info)?;
         self.consume_punct(&Equal, info)?;
 
-        let expr = self.expression_decider()?;
+        let expr = self.expression()?;
         let lval = LVal {
             identifier: identifier,
         };
@@ -193,28 +193,16 @@ impl Parser {
     }
 
     fn print_stmt(&self) -> LoxResult<Statement> {
-        self.consume_kwd(&Kwd::Print, "Parsing `print statement`")?;
-        Ok(Statement::PrintStmt(self.expression_decider()?))
+        self.consume_kwd(&Kwd::Print, "Parsing a print statement")?;
+        Ok(Statement::PrintStmt(self.expression()?))
     }
 
     fn if_stmt(&self) -> LoxResult<Statement> {
-        self.consume_kwd(&Kwd::If, "Parsing `if statement`")?;
+        self.consume_kwd(&Kwd::If, "Parsing an if statement")?;
 
         let condition = self.parenthesized_expr()?;
         let inside_if = self.scoped_program()?;
         Ok(Statement::IfStmt(condition, inside_if))
-    }
-
-    fn expression_decider(&self) -> LoxResult<Expr> {
-        let is_parenthesized = self
-            .token_reader
-            .peek()
-            .map(|t| t.equals(&LeftParen))
-            .unwrap_or(false);
-        if is_parenthesized {
-            return self.parenthesized_expr();
-        }
-        self.expression()
     }
 
     fn expression(&self) -> LoxResult<Expr> {
@@ -241,112 +229,126 @@ impl Parser {
     }
 
     fn factor(&self) -> LoxResult<Factor> {
-        self.abstract_recursive_descent(Self::unary_decider, |t: &Token| {
+        self.abstract_recursive_descent(Self::unary, |t: &Token| {
             t.equals(&Star) || t.equals(&Slash)
         })
     }
 
-    fn unary_decider(&self) -> LoxResult<Unary> {
-        let first_token = self
-            .token_reader
-            .peek_or(self.expected_next_token_err("Parsing first token of a unary expression"))?;
-
-        if first_token.equals(&LeftParen) {
-            return self.recursive_noop_unary();
-        }
-
-        if first_token.can_be_unary_op() {
-            return self.unary_op();
-        }
-
-        self.unary_noop()
-    }
-
-    fn unary_op(&self) -> LoxResult<Unary> {
-        let info = "Parsing unary expression with unary operator.";
-        let first_token = self
-            .token_reader
-            .advance_or(self.expected_next_token_err(info))?;
-        let second_token = self
-            .token_reader
-            .advance_or(self.expected_next_token_err(info))?;
-
-        match second_token {
-            Token::ValueToken(_, _) => Ok(Unary::Final(
-                Some(first_token.clone()),
-                second_token.clone(),
-            )),
-            Token::IdentifierToken(_, _) => Ok(Unary::Final(
-                Some(first_token.clone()),
-                second_token.clone(),
-            )),
-            Token::PunctToken(LeftParen, _) => Ok(Unary::Recursive(
-                Some(first_token.clone()),
-                Box::new(self.parenthesized_expr()?),
-            )),
-            _ => Err(self
-                .parsing_err()
-                .is_not(second_token, "a valid lox value")
-                .build()),
+    fn unary(&self) -> LoxResult<Unary> {
+        let unary_kind = self.unary_decider()?;
+        match unary_kind {
+            UnaryKind::Call(with_unary) => self.unary_call(with_unary),
+            UnaryKind::Final(with_unary) => self.unary_final(with_unary),
+            UnaryKind::Recursive(with_unary) => self.unary_recursive(with_unary),
         }
     }
 
-    fn recursive_noop_unary(&self) -> LoxResult<Unary> {
-        let info = "Parsing parenthesized recursive unary expression";
-        self.consume_punct(&LeftParen, info)?;
-        let expr = self.expression()?;
-        self.consume_punct(&RightParen, info)?;
-        return Ok(Unary::Recursive(None, Box::new(expr)));
+    fn unary_final(&self, with_unary: bool) -> LoxResult<Unary> {
+        let unary = match with_unary {
+            true => Some(self.token_reader.advance_or(self.expected_next_token_err("unary final"))?.clone()),
+            false => None
+        };
+        let val = self.token_reader.advance_or(self.expected_next_token_err("unary final"))?.clone();
+        Ok(Unary::Final(unary, val))
     }
 
-    fn unary_noop(&self) -> LoxResult<Unary> {
-        let first_token = self.token_reader.advance().unwrap_or_else(|| {
-            panic!("unary_noop should be called after making sure that next token exists")
-        });
+    fn unary_recursive(&self, with_unary: bool) -> LoxResult<Unary> {
+        let unary = match with_unary {
+            true => Some(self.token_reader.advance_or(self.expected_next_token_err("unary rec"))?.clone()),
+            false => None
+        };
+        let expr = self.parenthesized_expr()?;
+        Ok(Unary::Recursive(unary, Box::new(expr)))
+    }
 
-        let is_followed_by_parenth = self.token_reader.peek().map(|t| t.equals(&Punct::LeftParen)).unwrap_or(false);
-        if is_followed_by_parenth {
-            return self.call(None, first_token.clone());
-        }
+    fn unary_call(&self, with_unary: bool) -> LoxResult<Unary> {
+        let unary = match with_unary {
+            true => Some(self.token_reader.advance_or(self.expected_next_token_err("unary call"))?.clone()),
+            false => None
+        };
+        let identifier = self.token_reader.advance_if(Token::is_identifier).ok_or(self.parsing_err().expected_but_found("identifier", "not identifier").build())?;
+        let args = self.fn_arguments()?;
 
-        match first_token {
-            Token::ValueToken(_, _) => Ok(Unary::Final(None, first_token.clone())),
-            Token::IdentifierToken(_, _) => Ok(Unary::Final(None, first_token.clone())),
-            Token::PunctToken(LeftParen, _) => {
-                Ok(Unary::Recursive(None, Box::new(self.parenthesized_expr()?)))
+        Ok(Unary::Call(unary, identifier.clone(), args))
+    }
+
+    fn unary_decider(&self) -> LoxResult<UnaryKind> {
+        let mut with_op = false;
+        let token_1 = self
+            .token_reader
+            .peek_or(self.expected_next_token_err("Parsing first token of an unary expression"))?;
+        let token_2 = self
+            .token_reader
+            .peek_n(1)
+            .ok_or(self.expected_next_token_err("Parsing second token of an unary expression"))?;
+        let maybe_token_3 = self
+            .token_reader
+            .peek_n(2);
+
+        if token_1.can_be_unary_op() {
+            with_op = true; 
+            let is_parenthesized_expr = token_2.equals(&Punct::LeftParen);
+            if is_parenthesized_expr {
+                return Ok(UnaryKind::Recursive(with_op))
             }
-            _ => Err(self
-                .parsing_err()
-                .expected_but_found("unary expression", first_token)
-                .build()),
+
+            let token_3 = maybe_token_3.ok_or(self.expected_next_token_err("Parsing third token of an unary expression"))?;
+            let is_function_call = token_2.is_identifier() && token_3.equals(&Punct::LeftParen);
+            if is_function_call {
+                return Ok(UnaryKind::Call(with_op))
+            }
+
+            return Ok(UnaryKind::Final(with_op))
         }
+
+        let is_parenthesized_expr = token_1.equals(&Punct::LeftParen);
+        if is_parenthesized_expr {
+            return Ok(UnaryKind::Recursive(with_op))
+        }
+
+        let is_function_call = token_1.is_identifier() && token_2.equals(&Punct::LeftParen);
+        if is_function_call {
+            return Ok(UnaryKind::Call(with_op))
+        }
+
+        if !token_2.is_identifier() && !token_2.is_value() {
+            return Ok(UnaryKind::Final(with_op))
+        }
+
+        panic!("Not recognized unary :(, [{:?}, {:?}, {:?}]", token_1, token_2, maybe_token_3);
     }
 
-    fn call(&self, op: Option<Token>, fn_name: Token) -> LoxResult<Unary> {
-        let info = "parsing call unary expr";
+    
+    fn fn_arguments(&self) -> LoxResult<Vec<Box<Expr>>> {
+        let info = "parsing function arguments";
         let mut args = Vec::new();
+        let next_token_is_comma = || self.token_reader.peek().map(|t| t.equals(&Comme)).unwrap_or(false);
 
         self.consume_punct(&LeftParen, info)?;
-        args.push(Box::new(self.expression_decider()?));
+        if self.token_reader.peek().map(|t| t.equals(&RightParen)).unwrap_or(false) {
+            self.token_reader.advance(); // eat the right parenthesis
+            return Ok(args);
+        }
         
-        let is_comma = |t: &Token| t.equals(&Punct::Comme);
-
-        while self.token_reader.peek().map(is_comma).unwrap_or(false) {
-            self.consume_punct(&Punct::Comme, info)?;
-            let next_arg = Box::new(self.expression_decider()?);
-            args.push(next_arg);
+        while next_token_is_comma() || args.is_empty() {
+            if next_token_is_comma() {
+                self.token_reader.advance();
+            }
+            let next_arg = self.expression()?;
+            args.push(Box::new(next_arg));
         }
 
         self.consume_punct(&RightParen, info)?;
-
-        Ok (Unary::Call(op, fn_name, args))
+        
+        Ok(args)
     }
 
+    /// Used only in if statements and while loops
     fn parenthesized_expr(&self) -> LoxResult<Expr> {
         let info = "Processing parenthesized expression";
 
         self.consume_punct(&LeftParen, info)?;
-        let expr_inside_parenth = self.expression_decider()?;
+        let expr_inside_parenth = self.expression()?;
         self.consume_punct(&RightParen, info)?;
 
         Ok(expr_inside_parenth)

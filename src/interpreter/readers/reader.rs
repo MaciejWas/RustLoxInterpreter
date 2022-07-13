@@ -9,7 +9,7 @@ pub trait ReaderBase<A> {
     fn advance(&self) -> Option<&A>;
 
     /// Returns the element which would be returned in the next call by `advance`
-    fn peek(&self) -> Option<&A>;
+    fn peek_n(&self, n: usize) -> Option<&A>;
 
     /// Current position in the iterable. Ranges from `[0, v.len())`. Satisfies:
     /// * `self.advance(); self.pos()` == `self.pos() + 1`
@@ -23,6 +23,7 @@ pub trait Reader<A>: ReaderBase<A> {
     fn from_vec(v: Vec<A>) -> Self;
     fn advance(&self) -> Option<&A>;
     fn peek(&self) -> Option<&A>;
+    fn peek_n(&self, n: usize) -> Option<&A>;
     fn peek_or<E>(&self, err: E) -> Result<&A, E>;
     fn pos(&self) -> usize;
     fn advance_if<F>(&self, pred: F) -> Option<&A>
@@ -47,8 +48,12 @@ where
         T::advance(self)
     }
 
+    fn peek_n(&self, n: usize) -> Option<&A> {
+        T::peek_n(self, n)
+    }
+
     fn peek(&self) -> Option<&A> {
-        T::peek(self)
+        T::peek_n(self, 0)
     }
 
     fn pos(&self) -> usize {

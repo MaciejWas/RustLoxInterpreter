@@ -26,10 +26,6 @@ impl ReaderBase<Token> for TokenReader {
         output
     }
 
-    fn peek(&self) -> Option<&Token> {
-        self.tokens.get(self.pos())
-    }
-
     fn pos(&self) -> usize {
         self.pos.get()
     }
@@ -39,5 +35,9 @@ impl ReaderBase<Token> for TokenReader {
             return self.tokens.get(self.pos.get() - 1);
         }
         None
+    }
+
+    fn peek_n(&self, n: usize) -> Option<&Token> {
+        self.tokens.get(self.pos() + n)
     }
 }

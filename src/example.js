@@ -28,13 +28,5 @@ fun add(x, y) {
     print "hey im inside function :))";
     return x + y;
 };
-
-
-fun x() {
-    return 0;
-};
-
-var y = add(3, 3);
-var z = x();
-print y;
-print z;
+var y = add(1, 2);
+var x = sfdsa();

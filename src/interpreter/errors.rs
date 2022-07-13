@@ -32,8 +32,8 @@ impl LoxError {
     pub fn generate_err_msg(&self, program: &String) -> String {
         let line = program.lines().nth(self.pos.line).unwrap_or_else(|| {
             panic!(
-                "Failed to generate error message: line {} is out of range.",
-                self.pos.line
+                "Failed to generate error message: line {} is out of range. Error details: {:?}",
+                self.pos.line, self
             )
         });
 

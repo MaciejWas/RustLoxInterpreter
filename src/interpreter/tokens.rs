@@ -68,6 +68,20 @@ impl Token {
                 .to_result(),
         }
     }
+    
+    pub fn is_identifier(&self) -> bool {
+        match self {
+            Self::IdentifierToken(_, _) => true,
+            _ => false
+        }
+    }
+
+    pub fn is_value(&self) -> bool {
+        match self {
+            Self::ValueToken(_, _) => true,
+            _ => false
+        }
+    }
 
     pub fn as_lox_value(&self) -> LoxResult<LoxValue> {
         match self {

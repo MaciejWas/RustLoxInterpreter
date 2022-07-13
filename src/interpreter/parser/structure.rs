@@ -17,6 +17,17 @@ pub enum Statement {
 }
 
 #[derive(Debug, Clone)]
+pub enum StatementKind {
+    ExprStmt,
+    PrintStmt,
+    IfStmt,
+    LetStmt,
+    WhileLoop,
+    DefStmt,
+    Return,
+}
+
+#[derive(Debug, Clone)]
 pub struct FunctionDefinition {
     pub name: String,
     pub args: Vec<String>,
@@ -68,6 +79,12 @@ pub enum Unary {
     Final(Option<Token>, Token),
     Recursive(Option<Token>, Box<Expr>),
     Call(Option<Token>, Token, Vec<Box<Expr>>)
+}
+
+
+#[derive(Debug, Clone)]
+pub enum UnaryKind {
+    Final(bool), Recursive(bool), Call(bool)
 }
 
 // #################################
