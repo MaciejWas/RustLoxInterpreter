@@ -59,7 +59,7 @@ impl Parser {
 
     fn scoped_program(&self) -> LoxResult<Program> {
         let info = "Parsing scoped statements";
-        let end_of_scope = || self.token_reader.peek().map(|t| !t.equals(&Punct::RightBrace)).unwrap_or(false);
+        let end_of_scope = || self.token_reader.peek().map(|t| t.equals(&Punct::RightBrace)).unwrap_or(false);
         self.consume_punct(&LeftBrace, info)?;
 
         let mut program = Vec::new();
