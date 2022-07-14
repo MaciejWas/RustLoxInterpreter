@@ -17,7 +17,7 @@ pub trait PrettyPrint {
 
 impl PrettyPrint for Program {
     fn pretty_print(&self, pad: u8) {
-        println!("Program:");
+        println!("Program: ");
         for stmt in self.iter() {
             stmt.pretty_print(pad + 1);
             print!("\n");
