@@ -16,3 +16,11 @@ fn main() {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn run_integration_tests() {
+        
+    }
+}

@@ -81,7 +81,10 @@ where
         F: Fn(&A) -> bool,
     {
         loop {
-            self.advance_if(|a: &A| !pred(a));
+            match self.advance_if(|a: &A| !pred(a)) {
+                None => break,
+                Some(_) => continue
+            };
         }
     }
 

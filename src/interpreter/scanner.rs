@@ -174,7 +174,7 @@ impl Scanner {
     }
 
     fn handle_comment(&self) -> LoxResult<Token> {
-        self.reader.advance_until(|c: &char| *c == '\n');
+        self.reader.advance_until(|c: &char| {print!("{} - ", c); *c == '\n'});
         self.next_token()
     }
 
