@@ -1,5 +1,6 @@
 use crate::interpreter::errors::{
-    LoxError, position::Position, ErrBuilder, ErrType::TokenizingErr, LoxResult};
+    position::Position, ErrBuilder, ErrType::TokenizingErr, LoxError, LoxResult,
+};
 use regex::Regex;
 
 pub use kwds::Kwd;
@@ -18,7 +19,7 @@ pub enum TokenValue {
     Punct(Punct),
     Kwd(Kwd),
     Val(LoxValue),
-    Id(String)
+    Id(String),
 }
 
 impl From<Punct> for TokenValue {
@@ -26,7 +27,6 @@ impl From<Punct> for TokenValue {
         Self::Punct(p)
     }
 }
-
 
 impl From<LoxValue> for TokenValue {
     fn from(p: LoxValue) -> Self {
@@ -44,16 +44,24 @@ impl From<Kwd> for TokenValue {
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Token {
     pub val: TokenValue,
-    pub pos: Position
+    pub pos: Position,
 }
 
 impl Token {
     pub fn new(tok_val: TokenValue, pos: Position) -> Self {
-        Token { val: tok_val, pos: pos }
+        Token {
+            val: tok_val,
+            pos: pos,
+        }
     }
 
     pub fn from_string(string: String, position: Position) -> LoxResult<Self> {
-        let create_from = |tv: TokenValue| { Ok(Token { val: tv, pos: position}) };
+        let create_from = |tv: TokenValue| {
+            Ok(Token {
+                val: tv,
+                pos: position,
+            })
+        };
         if string.eq("true") {
             create_from(TokenValue::Val(LoxValue::from(true)))
         } else if string.eq("false") {
@@ -85,18 +93,18 @@ impl Token {
                 .to_result(),
         }
     }
-    
+
     pub fn is_identifier(&self) -> bool {
         match &self.val {
             TokenValue::Id(_) => true,
-            _ => false
+            _ => false,
         }
     }
 
     pub fn is_value(&self) -> bool {
         match self.val {
             TokenValue::Val(_) => true,
-            _ => false
+            _ => false,
         }
     }
 
@@ -162,12 +170,18 @@ pub trait Tokenizable {
 
 impl Tokenizable for Punct {
     fn at(self, pos: Position) -> Token {
-        Token { val: TokenValue::from(self), pos: pos }
+        Token {
+            val: TokenValue::from(self),
+            pos: pos,
+        }
     }
 }
 
 impl Tokenizable for LoxValue {
     fn at(self, pos: Position) -> Token {
-        Token { val: TokenValue::from(self), pos: pos }
+        Token {
+            val: TokenValue::from(self),
+            pos: pos,
+        }
     }
 }

@@ -31,4 +31,15 @@ fun add(x, y) {
 var y = add(1, 2);
 print y;
 
-var x = sfdsa();
+// var x = sfdsa();
+
+fun rec(n) {
+    if (n == 0) {
+        return n;
+    };
+
+    return rec(n-1);
+};
+
+var result = rec(10);
+print result;

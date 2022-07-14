@@ -83,7 +83,7 @@ where
         loop {
             match self.advance_if(|a: &A| !pred(a)) {
                 None => break,
-                Some(_) => continue
+                Some(_) => continue,
             };
         }
     }

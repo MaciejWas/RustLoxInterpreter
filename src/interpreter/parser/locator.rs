@@ -1,7 +1,6 @@
 use crate::interpreter::parser::*;
 use crate::interpreter::Visitor;
 
-
 /// Maps an expression to the position of its first token. Slow and temporary solution.
 pub struct Locator;
 
@@ -51,7 +50,7 @@ impl Visitor<Unary, Position> for Locator {
             Unary::Recursive(None, expr) => self.visit(expr.as_ref()),
             Unary::Recursive(Some(op), expr) => op.pos,
             Unary::Call(Some(op), _, _) => op.pos,
-            Unary::Call(None, t, _) => t.pos
+            Unary::Call(None, t, _) => t.pos,
         }
     }
 }

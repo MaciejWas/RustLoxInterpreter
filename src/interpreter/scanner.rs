@@ -1,8 +1,8 @@
 //! The scanner. Basically a pure function from a `String` to a `Vec<Token>`.
 
-use crate::interpreter::tokens::TokenValue;
 use crate::interpreter::errors::position::Position;
 use crate::interpreter::errors::{ErrBuilder, ErrType::ScanningErr, LoxResult};
+use crate::interpreter::tokens::TokenValue;
 
 use crate::interpreter::readers::{Reader, TextReader};
 use crate::interpreter::tokens::{Equals, Punct::*, Token, Tokenizable};
@@ -95,9 +95,8 @@ impl Scanner {
             if *c == '"' {
                 break;
             }
-        };
+        }
 
-        
         Token::from_string(buffer, pos)
     }
 

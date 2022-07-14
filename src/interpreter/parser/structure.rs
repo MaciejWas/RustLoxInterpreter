@@ -87,13 +87,14 @@ pub struct Factor {
 pub enum Unary {
     Final(Option<Token>, Token),
     Recursive(Option<Token>, Box<Expr>),
-    Call(Option<Token>, Token, Vec<Box<Expr>>)
+    Call(Option<Token>, Token, Vec<Box<Expr>>),
 }
-
 
 #[derive(Debug, Clone)]
 pub enum UnaryKind {
-    Final(bool), Recursive(bool), Call(bool)
+    Final(bool),
+    Recursive(bool),
+    Call(bool),
 }
 
 // #################################
