@@ -1,5 +1,6 @@
 //! The scanner. Basically a pure function from a `String` to a `Vec<Token>`.
 
+use crate::interpreter::tokens::TokenValue;
 use crate::interpreter::errors::position::Position;
 use crate::interpreter::errors::{ErrBuilder, ErrType::ScanningErr, LoxResult};
 
@@ -25,14 +26,14 @@ impl Scanner {
         let mut tokens = Vec::new();
         loop {
             let token = self.next_token()?;
-            let is_eof = token.equals(&Eof);
+            let is_eof = token.equals(Eof);
             tokens.push(token);
 
             if is_eof {
                 break;
             }
         }
-
+        print!("{:?}", tokens);
         Ok(ScannerOutput { tokens: tokens })
     }
 
@@ -94,8 +95,10 @@ impl Scanner {
             if *c == '"' {
                 break;
             }
-        }
-        Ok(buffer.at(pos))
+        };
+
+        
+        Token::from_string(buffer, pos)
     }
 
     fn handle_var_or_val_literal(&self, first_char: &char) -> LoxResult<Token> {
@@ -174,7 +177,7 @@ impl Scanner {
     }
 
     fn handle_comment(&self) -> LoxResult<Token> {
-        self.reader.advance_until(|c: &char| {print!("{} - ", c); *c == '\n'});
+        self.reader.advance_until(|c: &char| *c == '\n');
         self.next_token()
     }
 

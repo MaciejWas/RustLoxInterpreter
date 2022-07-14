@@ -29,6 +29,9 @@ impl PrettyPrint for Statement {
     fn pretty_print(&self, pad: u8) {
         print_with_pad(self.type_name() + ":", pad, true);
         match self {
+            Self::ClassDef(_) => {
+                print_with_pad("class definition".to_string(), pad, true);
+            }
             Self::Return(expr) => {
                 print_with_pad("return of:".to_string(), pad, false);
                 expr.pretty_print(pad + 1)

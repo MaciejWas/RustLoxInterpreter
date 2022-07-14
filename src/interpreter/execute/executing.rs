@@ -11,25 +11,20 @@ use crate::interpreter::{
     },
     parser::structure::*,
     parser::visitor::*,
-    tokens::position_of,
     tokens::Token,
+    tokens::TokenValue,
 };
 use std::iter::zip;
 
 use super::state::State;
 
-pub struct EvaluatedStmt {
+pub struct Evaluated {
     pub returned: Option<LoxObj>
 }
 
-pub struct EvaluatedProgram {
-    pub returned: Option<LoxObj>
-}
-
-impl From<EvaluatedStmt> for EvaluatedProgram {
-    fn from(evaluated_stmt: EvaluatedStmt) -> Self { 
-        EvaluatedProgram { returned: evaluated_stmt.returned }
-    } 
+impl Evaluated {
+    fn nil() -> Self { Evaluated { returned: None} }
+    fn returned(returned: LoxObj) -> Self { Evaluated { returned: Some(returned)} }
 }
 
 pub struct Executor {
@@ -61,24 +56,24 @@ impl Executor {
     }
 }
 
-impl Visitor<Program, LoxResult<EvaluatedProgram>> for Executor {
-    fn visit(&mut self, p: &Program) -> LoxResult<EvaluatedProgram> {
+impl Visitor<Program, LoxResult<Evaluated>> for Executor {
+    fn visit(&mut self, p: &Program) -> LoxResult<Evaluated> {
         for stmt in p.iter() {
             let evaluated_stmt = self.visit(stmt)?;
             if evaluated_stmt.returned.is_some() {
-                return Ok(EvaluatedProgram::from(evaluated_stmt))
+                return Ok(Evaluated::from(evaluated_stmt))
             }
 
         }
-        Ok(EvaluatedProgram {returned: None} )
+        Ok(Evaluated {returned: None} )
     }
 }
 
-impl Visitor<Statement, LoxResult<EvaluatedStmt>> for Executor {
-    fn visit(&mut self, stmt: &Statement) -> LoxResult<EvaluatedStmt> {
+impl Visitor<Statement, LoxResult<Evaluated>> for Executor {
+    fn visit(&mut self, stmt: &Statement) -> LoxResult<Evaluated> {
         match stmt {
-            Statement::ExprStmt(_) => {
-                println!("I am lazy heheheheh")
+            Statement::ExprStmt(expr) => {
+                self.visit(expr)?;
             }
             Statement::PrintStmt(expr) => {
                 let evaluated = self.visit(expr)?;
@@ -87,10 +82,8 @@ impl Visitor<Statement, LoxResult<EvaluatedStmt>> for Executor {
             Statement::IfStmt(cond, program) => {
                 let cond_evaluated = self.visit(cond)?;
                 match Option::<bool>::from(cond_evaluated) {
-                    Some(true) => {
-                        self.scoped(|v| v.visit(program))?;
-                    },
-                    Some(false) => (),
+                    Some(true) => return self.scoped(|v| v.visit(program)),
+                    Some(false) => return Ok(Evaluated::nil()),
                     None => {
                         return eval_err()
                             .at(locate(&cond))
@@ -101,24 +94,27 @@ impl Visitor<Statement, LoxResult<EvaluatedStmt>> for Executor {
             }
             Statement::WhileLoop(cond, program) => loop {
                 let cond_evaluated = self.visit(cond)?;
-                match Option::<bool>::from(cond_evaluated) {
-                    Some(false) => break,
-                    None => {
-                        return eval_err()
+                let can_continue_loop = Option::<bool>::from(cond_evaluated);
+                match can_continue_loop {
+                    Some(true) => {
+                        let evaluated_program = self.scoped(|v| v.visit(program))?;
+                        if evaluated_program.returned.is_some() {
+                            return Ok(evaluated_program)
+                        }
+                    }
+                    Some(false) => return Ok(Evaluated { returned: None }),
+                    None => return eval_err()
                             .without_pos()
                             .with_message("could not evaluate while stmt condition".to_string())
                             .to_result()
-                    }
-                    _ => {}
-                };
-
-                self.scoped(|v| v.visit(program))?;
-            },
+                }
+            }
             Statement::LetStmt(lval, rval) => {
                 let pos = locate(&rval.expr);
                 let right_evaluated = self.visit(&rval.expr)?;
                 self.state
                     .bind(lval.identifier.clone(), right_evaluated, pos)?;
+                
             }
             Statement::DefStmt(pos, function_definition) => {
                 self.state.bind(
@@ -127,12 +123,15 @@ impl Visitor<Statement, LoxResult<EvaluatedStmt>> for Executor {
                     *pos,
                 )?;
             }
+            Statement::ClassDef(class_defn) => {
+                unimplemented!()
+            }
             Statement::Return(expr) => {
                 let evaluated_expr = self.visit(expr)?;
-                return Ok( EvaluatedStmt { returned: Some(evaluated_expr) } )
+                return Ok( Evaluated { returned: Some(evaluated_expr) } )
             }
         }
-        Ok(EvaluatedStmt { returned: None })
+        Ok(Evaluated { returned: None })
     }
 }
 
@@ -140,38 +139,7 @@ impl Visitor<Expr, LoxResult<LoxObj>> for Executor {
     fn visit(&mut self, expr: &Expr) -> LoxResult<LoxObj> {
         match expr {
             Expr::Eqlty(eqlty) => self.visit(eqlty),
-            Expr::Call(token, args) => {
-                let pos = position_of(token);
-                let called_object = self.as_lox_obj(token)?;
-                let function = called_object.transform(|raw| match raw {
-                    RawLoxObject::Fun(function_def) => Ok(function_def),
-                    _ => eval_err()
-                        .at(pos)
-                        .is_not(raw.to_string(), "callable")
-                        .to_result(),
-                })?;
-
-                let args_evaluated: LoxResult<Vec<LoxObj>> = args
-                    .into_iter()
-                    .map(|arg_expr| self.visit(arg_expr))
-                    .collect();
-
-                self.state.push_new_scope();
-
-                for (arg_name, arg_evaluated) in zip(function.args, args_evaluated?) {
-                    self.state.bind(arg_name, arg_evaluated, pos)?;
-                }
-
-                let program_result = self.visit(&function.body)?;
-
-                self.state.pop_last_scope();
-
-                match program_result.returned {
-                    Some(obj) => Ok(obj),
-                    None => Ok(LoxObj::from(LoxValue::from(0)))
-                }
-            }
-
+            _ => panic!("call expr is not supported anymore")
         }
     }
 }
@@ -223,22 +191,26 @@ impl Visitor<Unary, LoxResult<LoxObj>> for Executor {
             Unary::Final(None, token) => self.as_lox_obj(token),
             Unary::Final(Some(op), token) => {
                 let lox_obj = self.as_lox_obj(token)?;
-                lox_obj.apply(|raw| unary_op(op, raw))
+                return lox_obj.apply(|raw| unary_op(op, raw))
             }
             Unary::Recursive(None, expr) => self.visit(expr.as_ref()),
             Unary::Recursive(Some(op), expr) => {
                 let evaluated_expression = self.visit(expr.as_ref())?;
-                evaluated_expression.apply(|raw| unary_op(op, raw))
+                return evaluated_expression.apply(|raw| unary_op(op, raw))
             },
-            Unary::Call(_op, fn_name, args) => {
-                // TODO: process op
+            Unary::Call(operator, fn_name, args) => {
                 let func = self.as_lox_obj(fn_name)?;
+                let pos = fn_name.pos;
                 let args_evaluated: LoxResult<Vec<LoxObj>> = args
                     .into_iter()
                     .map(|arg_expr| self.visit(arg_expr.as_ref()))
                     .collect();
                     
-                self.call(func, args_evaluated?, position_of(fn_name))
+                let fn_output = self.call(func, args_evaluated?, pos)?;
+                return match operator {
+                    Some(op) => fn_output.apply(|raw| unary_op(op, raw)),
+                    None => Ok(fn_output)
+                }
             }
         }
     }
@@ -247,12 +219,11 @@ impl Visitor<Unary, LoxResult<LoxObj>> for Executor {
 fn eval_fold(acc: LoxResult<LoxObj>, next: (&Token, LoxResult<LoxObj>)) -> LoxResult<LoxObj> {
     let acc: LoxObj = acc?;
     let (op, val) = next;
-    let curr_pos: Position = position_of(op);
     let val: LoxObj = val?;
 
     if let Some(acc_val) = acc.to_value() {
         if let Some(val_val) = val.to_value() {
-            let result = binary_operations::handle(op, acc_val, val_val, curr_pos)?;
+            let result = binary_operations::handle(op, acc_val, val_val, op.pos)?;
             return Ok(LoxObj::from(result));
         }
     }
@@ -263,11 +234,11 @@ fn eval_fold(acc: LoxResult<LoxObj>, next: (&Token, LoxResult<LoxObj>)) -> LoxRe
 impl Executor {
     /// Evaluates token to `LoxObj` if token is an identifier or value
     fn as_lox_obj(&self, token: &Token) -> LoxResult<LoxObj> {
-        match token {
-            Token::IdentifierToken(id, pos) => self.state.get(id, pos.clone()),
-            Token::ValueToken(lox_val, _) => Ok(LoxObj::from(lox_val.clone())),
+        match &token.val {
+            TokenValue::Id(id) => self.state.get(&id, token.pos),
+            TokenValue::Val(lox_val) => Ok(LoxObj::from(lox_val.clone())),
             _ => Err(eval_err()
-                .at(position_of(token))
+                .at(token.pos)
                 .is_not(token, "a lox object")
                 .build()),
         }

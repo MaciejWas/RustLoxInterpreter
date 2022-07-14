@@ -14,6 +14,7 @@ pub enum Statement {
     WhileLoop(Expr, Program),
     DefStmt(Position, FunctionDefinition),
     Return(Expr),
+    ClassDef(ClassDefinition),
 }
 
 #[derive(Debug, Clone)]
@@ -25,6 +26,7 @@ pub enum StatementKind {
     WhileLoop,
     DefStmt,
     Return,
+    ClassDef,
 }
 
 #[derive(Debug, Clone)]
@@ -32,6 +34,13 @@ pub struct FunctionDefinition {
     pub name: String,
     pub args: Vec<String>,
     pub body: Program,
+}
+
+#[derive(Debug, Clone)]
+pub struct ClassDefinition {
+    pub name: String,
+    pub fields: Vec<String>,
+    pub methods: Vec<FunctionDefinition>,
 }
 
 #[derive(Debug, Clone)]
@@ -182,6 +191,7 @@ pub trait NamedType {
 impl NamedType for Statement {
     fn type_name(&self) -> String {
         match self {
+            Self::ClassDef(_) => "ClassDef",
             Self::PrintStmt(_) => "Statement",
             Self::ExprStmt(_) => "Expression",
             Self::IfStmt(_, _) => "IfStatement",

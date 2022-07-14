@@ -1,12 +1,13 @@
 use crate::interpreter::errors::LoxResult;
 use crate::interpreter::parser::structure::FunctionDefinition;
+use crate::interpreter::parser::structure::ClassDefinition;
 use crate::interpreter::tokens::LoxValue;
 
 /// Value which is held in the bindings
 pub enum RawLoxObject {
     Plain(LoxValue),
     Fun(FunctionDefinition),
-    Class(()),
+    Class(ClassDefinition),
 }
 
 impl RawLoxObject {

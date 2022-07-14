@@ -46,12 +46,12 @@ impl Visitor<Factor, Position> for Locator {
 impl Visitor<Unary, Position> for Locator {
     fn visit(&mut self, unary: &Unary) -> Position {
         match unary {
-            Unary::Final(None, token) => position_of(token),
-            Unary::Final(Some(op), _) => position_of(op),
+            Unary::Final(None, token) => token.pos,
+            Unary::Final(Some(op), _) => op.pos,
             Unary::Recursive(None, expr) => self.visit(expr.as_ref()),
-            Unary::Recursive(Some(op), expr) => position_of(op),
-            Unary::Call(Some(op), _, _) => position_of(op),
-            Unary::Call(None, t, _) => position_of(t)
+            Unary::Recursive(Some(op), expr) => op.pos,
+            Unary::Call(Some(op), _, _) => op.pos,
+            Unary::Call(None, t, _) => t.pos
         }
     }
 }

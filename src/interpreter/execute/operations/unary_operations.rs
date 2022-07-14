@@ -1,6 +1,6 @@
 use crate::interpreter::errors::{position::Position, ErrBuilder, ErrType::LogicError, LoxResult};
 use crate::interpreter::execute::definitions::RawLoxObject;
-use crate::interpreter::tokens::{position_of, LoxValue::Boolean, LoxValue::Integer, Punct, Token};
+use crate::interpreter::tokens::{LoxValue::Boolean, LoxValue::Integer, Punct, Token};
 
 fn unary_op_err() -> ErrBuilder {
     ErrBuilder::new()
@@ -21,7 +21,7 @@ pub fn negate(raw: RawLoxObject, at: Position) -> LoxResult<RawLoxObject> {
 
 /// Applies `op` to `right`
 pub fn unary_op(op: &Token, right: RawLoxObject) -> LoxResult<RawLoxObject> {
-    let pos = position_of(&op);
+    let pos = op.pos;
     let op = op.as_punct()?;
     match op {
         Punct::Minus => negate(right, pos),
