@@ -1,8 +1,5 @@
-use crate::interpreter::errors::position::Position;
-use crate::interpreter::errors::ErrBuilder;
-use crate::interpreter::errors::ErrType::TokenizingErr;
-use crate::interpreter::errors::LoxResult;
-use crate::interpreter::LoxError;
+use crate::interpreter::errors::{
+    LoxError, position::Position, ErrBuilder, ErrType::TokenizingErr, LoxResult};
 use regex::Regex;
 
 pub use kwds::Kwd;
@@ -43,8 +40,9 @@ impl From<Kwd> for TokenValue {
     }
 }
 
+/// Token value enhanced with a position
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub struct Token { // TODO: Stupid implementation
+pub struct Token {
     pub val: TokenValue,
     pub pos: Position
 }

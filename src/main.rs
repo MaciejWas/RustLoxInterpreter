@@ -19,8 +19,20 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
+    use super::LoxInterpreter;
+
     #[test]
-    fn run_integration_tests() {
-        
-    }
+    fn test_run_integration_tests() {
+            let mut interpreter = LoxInterpreter::new();
+            interpreter.run_file(&"./src/integration_tests/test_print.js".to_string());
+
+            interpreter = LoxInterpreter::new();
+            interpreter.run_file(&"./src/integration_tests/test_expr_stmt.js".to_string());
+
+            interpreter = LoxInterpreter::new();
+            interpreter.run_file(&"./src/integration_tests/test_assignments.js".to_string());
+
+            interpreter = LoxInterpreter::new();
+            interpreter.run_file(&"./src/integration_tests/test_function_defn.js".to_string());
+        }
 }
