@@ -81,14 +81,14 @@ impl Parser {
     fn statement(&self) -> LoxResult<Statement> {
         let stmt_kind = self.statement_decider()?;
         let stmt = match stmt_kind {
-            StatementKind::ExprStmt => self.expr_stmt(),
-            StatementKind::DefStmt => self.function_definition(),
-            StatementKind::LetStmt => self.var_stmt(),
-            StatementKind::IfStmt => self.if_stmt(),
+            StatementKind::Expr => self.expr_stmt(),
+            StatementKind::Fun => self.function_definition(),
+            StatementKind::Let => self.var_stmt(),
+            StatementKind::If => self.if_stmt(),
             StatementKind::Return => self.return_(),
             StatementKind::WhileLoop => self.while_stmt(),
-            StatementKind::PrintStmt => self.print_stmt(),
-            StatementKind::ClassDef => self.class_def_stmt(),
+            StatementKind::Print => self.print_stmt(),
+            StatementKind::Class => self.class_def_stmt(),
         };
         Ok(stmt?)
     }
@@ -103,17 +103,17 @@ impl Parser {
 
         if let TokenValue::Kwd(kwd) = &first_token.val {
             return match kwd {
-                Kwd::Print => Ok(StatementKind::PrintStmt),
-                Kwd::If => Ok(StatementKind::IfStmt),
-                Kwd::Var => Ok(StatementKind::LetStmt),
+                Kwd::Print => Ok(StatementKind::Print),
+                Kwd::If => Ok(StatementKind::If),
+                Kwd::Var => Ok(StatementKind::Let),
                 Kwd::While => Ok(StatementKind::WhileLoop),
-                Kwd::Fun => Ok(StatementKind::DefStmt),
+                Kwd::Fun => Ok(StatementKind::Fun),
                 Kwd::Return => Ok(StatementKind::Return),
-                _ => Ok(StatementKind::ExprStmt),
+                _ => Ok(StatementKind::Expr),
             };
         }
 
-        return Ok(StatementKind::ExprStmt);
+        return Ok(StatementKind::Expr);
     }
 
     fn class_def_stmt(&self) -> LoxResult<Statement> {
@@ -123,8 +123,8 @@ impl Parser {
         loop {
             let next_stmt = self.statement()?;
             match next_stmt {
-                Statement::LetStmt(_, _) => unimplemented!(),
-                Statement::DefStmt(_, _) => unimplemented!(),
+                Statement::Let(_, _) => unimplemented!(),
+                Statement::Fun(_, _) => unimplemented!(),
                 _ => {}
             }
         }
@@ -152,7 +152,7 @@ impl Parser {
             body: fn_body,
         };
 
-        Ok(Statement::DefStmt(pos.unwrap(), fn_def))
+        Ok(Statement::Fun(pos.unwrap(), fn_def))
     }
 
     fn fn_def_args(&self) -> LoxResult<Vec<String>> {
@@ -201,7 +201,7 @@ impl Parser {
 
     fn expr_stmt(&self) -> LoxResult<Statement> {
         let expr = self.expression()?;
-        Ok(Statement::ExprStmt(expr))
+        Ok(Statement::Expr(expr))
     }
 
     fn var_stmt(&self) -> LoxResult<Statement> {
@@ -216,12 +216,12 @@ impl Parser {
             identifier: identifier,
         };
         let rval = RVal { expr };
-        return Ok(Statement::LetStmt(lval, rval));
+        return Ok(Statement::Let(lval, rval));
     }
 
     fn print_stmt(&self) -> LoxResult<Statement> {
         self.consume_kwd(Kwd::Print, "Parsing a print statement")?;
-        Ok(Statement::PrintStmt(self.expression()?))
+        Ok(Statement::Print(self.expression()?))
     }
 
     fn if_stmt(&self) -> LoxResult<Statement> {
@@ -229,7 +229,7 @@ impl Parser {
 
         let condition = self.parenthesized_expr()?;
         let inside_if = self.scoped_program()?;
-        Ok(Statement::IfStmt(condition, inside_if))
+        Ok(Statement::If(condition, inside_if))
     }
 
     fn expression(&self) -> LoxResult<Expr> {

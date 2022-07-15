@@ -77,14 +77,14 @@ impl Visitor<Program, LoxResult<Evaluated>> for Executor {
 impl Visitor<Statement, LoxResult<Evaluated>> for Executor {
     fn visit(&mut self, stmt: &Statement) -> LoxResult<Evaluated> {
         match stmt {
-            Statement::ExprStmt(expr) => {
+            Statement::Expr(expr) => {
                 self.visit(expr)?;
             }
-            Statement::PrintStmt(expr) => {
+            Statement::Print(expr) => {
                 let evaluated = self.visit(expr)?;
                 println!("{}", evaluated.to_string())
             }
-            Statement::IfStmt(cond, program) => {
+            Statement::If(cond, program) => {
                 let cond_evaluated = self.visit(cond)?;
                 match Option::<bool>::from(cond_evaluated) {
                     Some(true) => return self.scoped(|v| v.visit(program)),
@@ -116,20 +116,20 @@ impl Visitor<Statement, LoxResult<Evaluated>> for Executor {
                     }
                 }
             },
-            Statement::LetStmt(lval, rval) => {
+            Statement::Let(lval, rval) => {
                 let pos = locate(&rval.expr);
                 let right_evaluated = self.visit(&rval.expr)?;
                 self.state
                     .bind(lval.identifier.clone(), right_evaluated, pos)?;
             }
-            Statement::DefStmt(pos, function_definition) => {
+            Statement::Fun(pos, function_definition) => {
                 self.state.bind(
                     function_definition.name.clone(),
                     LoxObj::from(function_definition.clone()),
                     *pos,
                 )?;
             }
-            Statement::ClassDef(class_defn) => {
+            Statement::Class(class_defn) => {
                 unimplemented!()
             }
             Statement::Return(expr) => {

@@ -7,26 +7,26 @@ pub type SubRules<A> = Vec<(Token, A)>;
 
 #[derive(Debug, Clone)]
 pub enum Statement {
-    ExprStmt(Expr),
-    PrintStmt(Expr),
-    IfStmt(Expr, Program),
-    LetStmt(LVal, RVal),
+    Expr(Expr),
+    Print(Expr),
+    If(Expr, Program),
+    Let(LVal, RVal),
     WhileLoop(Expr, Program),
-    DefStmt(Position, FunctionDefinition),
+    Fun(Position, FunctionDefinition),
     Return(Expr),
-    ClassDef(ClassDefinition),
+    Class(ClassDefinition),
 }
 
 #[derive(Debug, Clone)]
 pub enum StatementKind {
-    ExprStmt,
-    PrintStmt,
-    IfStmt,
-    LetStmt,
+    Expr,
+    Print,
+    If,
+    Let,
     WhileLoop,
-    DefStmt,
+    Fun,
     Return,
-    ClassDef,
+    Class,
 }
 
 #[derive(Debug, Clone)]
@@ -192,13 +192,13 @@ pub trait NamedType {
 impl NamedType for Statement {
     fn type_name(&self) -> String {
         match self {
-            Self::ClassDef(_) => "ClassDef",
-            Self::PrintStmt(_) => "Statement",
-            Self::ExprStmt(_) => "Expression",
-            Self::IfStmt(_, _) => "IfStatement",
-            Self::LetStmt(_, _) => "LetStmt",
+            Self::Class(_) => "ClassDef",
+            Self::Print(_) => "Statement",
+            Self::Expr(_) => "Expression",
+            Self::If(_, _) => "IfStatement",
+            Self::Let(_, _) => "LetStmt",
             Self::WhileLoop(_, _) => "WhileLoop",
-            Self::DefStmt(_, _) => "DefStmt",
+            Self::Fun(_, _) => "Fun",
             Self::Return(_) => "Return",
         }
         .to_string()

@@ -29,20 +29,20 @@ impl PrettyPrint for Statement {
     fn pretty_print(&self, pad: u8) {
         print_with_pad(self.type_name() + ":", pad, true);
         match self {
-            Self::ClassDef(_) => {
+            Self::Class(_) => {
                 print_with_pad("class definition".to_string(), pad, true);
             }
             Self::Return(expr) => {
                 print_with_pad("return of:".to_string(), pad, false);
                 expr.pretty_print(pad + 1)
             }
-            Self::LetStmt(lval, rval) => {
+            Self::Let(lval, rval) => {
                 print_with_pad(format!("{}", lval.identifier), pad, true);
                 rval.expr.pretty_print(pad + 1);
             }
-            Self::PrintStmt(expr) => expr.pretty_print(pad + 1),
-            Self::ExprStmt(expr) => expr.pretty_print(pad + 1),
-            Self::IfStmt(cond, prog) => {
+            Self::Print(expr) => expr.pretty_print(pad + 1),
+            Self::Expr(expr) => expr.pretty_print(pad + 1),
+            Self::If(cond, prog) => {
                 cond.pretty_print(pad + 1);
                 prog.pretty_print(pad + 1)
             }
@@ -50,7 +50,7 @@ impl PrettyPrint for Statement {
                 cond.pretty_print(pad + 1);
                 prog.pretty_print(pad + 1)
             }
-            Self::DefStmt(_, function_definition) => {
+            Self::Fun(_, function_definition) => {
                 function_definition
                     .args
                     .iter()
