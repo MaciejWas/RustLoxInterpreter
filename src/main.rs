@@ -22,17 +22,30 @@ mod tests {
     use super::LoxInterpreter;
 
     #[test]
-    fn test_run_integration_tests() {
+    fn test_print() {
         let mut interpreter = LoxInterpreter::new();
         interpreter.run_file(&"./src/integration_tests/test_print.js".to_string());
+    }
 
-        interpreter = LoxInterpreter::new();
+    
+    #[test]
+    fn test_expr_stmt() {
+        let mut interpreter = LoxInterpreter::new();
         interpreter.run_file(&"./src/integration_tests/test_expr_stmt.js".to_string());
+    }
 
-        interpreter = LoxInterpreter::new();
+    #[test]
+    fn test_assignments() {
+        let mut interpreter = LoxInterpreter::new();
         interpreter.run_file(&"./src/integration_tests/test_assignments.js".to_string());
+    }
+    
+    #[test]
+    fn test_functions() {
+        let mut interpreter = LoxInterpreter::new();
+        interpreter.run_file(&"./src/integration_tests/test_function_defn.js".to_string());
 
         interpreter = LoxInterpreter::new();
-        interpreter.run_file(&"./src/integration_tests/test_function_defn.js".to_string());
+        interpreter.run_file(&"./src/integration_tests/test_fn_call.js".to_string());
     }
 }
