@@ -38,6 +38,10 @@ impl LoxObj {
         self.namespace_id = Some(id);
     }
 
+    pub fn get_namespace(&mut self) -> Option<usize> {
+        self.namespace_id
+    }
+
     pub fn apply<F>(self, f: F) -> LoxResult<LoxObj>
     where
         F: Fn(RawLoxObject) -> LoxResult<RawLoxObject>,

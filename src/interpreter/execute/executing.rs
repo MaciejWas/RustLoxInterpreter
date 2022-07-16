@@ -130,7 +130,11 @@ impl Visitor<Statement, LoxResult<Evaluated>> for Executor {
                 )?;
             }
             Statement::Class(defn) => {
-                let ClassDefinition { name, fields, methods } = defn;
+                let ClassDefinition {
+                    name,
+                    fields,
+                    methods,
+                } = defn;
                 let Token { val, pos } = name;
 
                 let identifier = match val {
@@ -138,11 +142,15 @@ impl Visitor<Statement, LoxResult<Evaluated>> for Executor {
                     _ => panic!("Class name is not an identifier. This should have been caught by the parser but wasn't.")
                 };
 
+                self.state.bind(identifier, LoxObj::from(defn.clone()), *pos)?;
 
-                let mut obj = LoxObj::from(defn.clone());
-                self.state.assign_namespace(&mut obj)?;
-                self.state.bind( identifier, obj, *pos )?;
-                unimplemented!()
+                for field in fields {
+                    self.state.bind_to_obj(identifier, field);
+                }
+                for method in methods {
+                    self.state.bind_to_obj(identifier, method);
+                }
+                
             }
             Statement::Return(expr) => {
                 let evaluated_expr = self.visit(expr)?;

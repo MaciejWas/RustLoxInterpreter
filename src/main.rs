@@ -38,14 +38,16 @@ mod tests {
     #[test]
     fn test_assignments() {
         let mut interpreter = LoxInterpreter::new();
-        let result = interpreter.run_file(&"./src/integration_tests/test_assignments.js".to_string());
+        let result =
+            interpreter.run_file(&"./src/integration_tests/test_assignments.js".to_string());
         assert_eq!(result.is_none(), true)
     }
 
     #[test]
     fn test_functions() {
         let mut interpreter = LoxInterpreter::new();
-        let result = interpreter.run_file(&"./src/integration_tests/test_function_defn.js".to_string());
+        let result =
+            interpreter.run_file(&"./src/integration_tests/test_function_defn.js".to_string());
         assert_eq!(result.is_none(), true)
     }
 

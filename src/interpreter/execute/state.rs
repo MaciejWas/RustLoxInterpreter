@@ -42,7 +42,11 @@ impl State {
         }
     }
 
-    pub fn assign_namespace(&mut self, obj: &mut LoxObj) -> LoxResult<()> {
+    fn get_curr_scope(&mut self) -> &Scope {
+        self.scope_stack.last().unwrap_or_else(|| panic!("Global stack not present"))
+    }
+
+    fn assign_namespace(&mut self, obj: &mut LoxObj, pos: Position) -> LoxResult<()> {
         let scope = Scope::new("class scope".to_string());
         let id = match self.namespaces.keys().max() {
             Some(x) => x + 1,
@@ -51,6 +55,10 @@ impl State {
         self.namespaces.insert(id, scope);
         obj.set_namespace(id);
         Ok(())
+    }
+
+    pub fn bind_to_obj(&mut self, id: &String, obj: LoxObj, pos: Position) {
+        let bind_to = self.get(id, pos);
     }
 
     pub fn push_new_scope(&mut self) {
@@ -75,24 +83,15 @@ impl State {
             .scope_stack
             .iter_mut()
             .filter(|scope| scope.bindings.contains_key(&identifier))
-            .last();
+            .next(); // first scope which contains this identifier
 
         return match relevant_scope {
             Some(scope) => {
-                let result = scope.bindings.insert(identifier, RawLoxObject::from(obj));
-                result.ok_or_else(|| could_not_insert_into_scope_err)?;
+                scope.bindings.insert(identifier, RawLoxObject::from(obj));
                 Ok(())
             }
             None => {
-                self.scope_stack
-                    .last_mut()
-                    .ok_or_else(|| {
-                        panic!(
-                            "Global stack is not present! (While binding {:?} to {:?})",
-                            obj.to_string(),
-                            identifier
-                        )
-                    })?
+                self.get_curr_scope()
                     .bindings
                     .insert(identifier, RawLoxObject::from(obj));
                 Ok(())

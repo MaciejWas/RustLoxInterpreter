@@ -123,9 +123,14 @@ impl Parser {
         let mut methods = Vec::new();
 
         self.consume_kwd(Kwd::Class, info)?;
-        let class_name = self.token_reader.advance_or(self.expected_next_token_err(info))?;
+        let class_name = self
+            .token_reader
+            .advance_or(self.expected_next_token_err(info))?;
         if !class_name.is_identifier() {
-            return self.parsing_err().expected_but_found("identifier", class_name).to_result()
+            return self
+                .parsing_err()
+                .expected_but_found("identifier", class_name)
+                .to_result();
         }
 
         self.consume_punct(Punct::LeftBrace, info)?;

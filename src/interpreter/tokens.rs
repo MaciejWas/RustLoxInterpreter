@@ -1,6 +1,4 @@
-use crate::interpreter::errors::{
-    position::Position, ErrBuilder, ErrType::TokenizingErr, LoxResult,
-};
+use crate::interpreter::errors::{position::Position, ErrBuilder, ErrType::TokenizingErr, LoxResult};
 use regex::Regex;
 
 pub use kwds::Kwd;
@@ -19,7 +17,7 @@ pub enum TokenValue {
     Punct(Punct),
     Kwd(Kwd),
     Val(LoxValue),
-    Id(String)
+    Id(String),
 }
 
 impl From<Punct> for TokenValue {
