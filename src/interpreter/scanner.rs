@@ -33,7 +33,6 @@ impl Scanner {
                 break;
             }
         }
-        print!("{:?}", tokens);
         Ok(ScannerOutput { tokens: tokens })
     }
 

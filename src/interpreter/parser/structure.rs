@@ -38,8 +38,8 @@ pub struct FunctionDefinition {
 
 #[derive(Debug, Clone)]
 pub struct ClassDefinition {
-    pub name: String,
-    pub fields: Vec<String>,
+    pub name: Token,
+    pub fields: Vec<(LVal, RVal)>,
     pub methods: Vec<FunctionDefinition>,
 }
 

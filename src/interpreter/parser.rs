@@ -27,7 +27,7 @@ pub struct Parser {
 ///
 /// Methods which correspond to grammar rules can have `decider` word in their name - it means
 /// that they do not progress the internal state but rather look ahead and determine which kind of grammar rule
-/// comes next, and then call specific method which does progress the iternal state.
+/// comes next.
 impl Parser {
     pub fn new(scanner_output: ScannerOutput) -> Self {
         Parser {
@@ -109,6 +109,7 @@ impl Parser {
                 Kwd::While => Ok(StatementKind::WhileLoop),
                 Kwd::Fun => Ok(StatementKind::Fun),
                 Kwd::Return => Ok(StatementKind::Return),
+                Kwd::Class => Ok(StatementKind::Class),
                 _ => Ok(StatementKind::Expr),
             };
         }
@@ -118,18 +119,42 @@ impl Parser {
 
     fn class_def_stmt(&self) -> LoxResult<Statement> {
         let info = "parsing class def";
-        self.consume_punct(Punct::LeftBrace, info)?;
+        let mut fields = Vec::new();
+        let mut methods = Vec::new();
 
-        loop {
-            let next_stmt = self.statement()?;
-            match next_stmt {
-                Statement::Let(_, _) => unimplemented!(),
-                Statement::Fun(_, _) => unimplemented!(),
-                _ => {}
-            }
+        self.consume_kwd(Kwd::Class, info)?;
+        let class_name = self.token_reader.advance_or(self.expected_next_token_err(info))?;
+        if !class_name.is_identifier() {
+            return self.parsing_err().expected_but_found("identifier", class_name).to_result()
         }
 
+        self.consume_punct(Punct::LeftBrace, info)?;
+        while let Some(next_token) = self.token_reader.peek() {
+            if next_token.equals(Punct::RightBrace) {
+                break;
+            }
+
+            let next_stmt = self.statement()?;
+            self.consume_punct(Punct::Semicolon, info)?;
+            match next_stmt {
+                Statement::Let(lval, rval) => fields.push((lval, rval)),
+                Statement::Fun(_, fn_def) => methods.push(fn_def),
+                _ => {
+                    return self
+                        .parsing_err()
+                        .expected_but_found("function or let statement", next_stmt)
+                        .to_result()
+                }
+            }
+        }
         self.consume_punct(Punct::RightBrace, info)?;
+        let class = ClassDefinition {
+            name: class_name.clone(),
+            fields: fields,
+            methods: methods,
+        };
+
+        Ok(Statement::Class(class))
     }
 
     fn return_(&self) -> LoxResult<Statement> {

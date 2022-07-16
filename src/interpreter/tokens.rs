@@ -1,5 +1,5 @@
 use crate::interpreter::errors::{
-    position::Position, ErrBuilder, ErrType::TokenizingErr, LoxError, LoxResult,
+    position::Position, ErrBuilder, ErrType::TokenizingErr, LoxResult,
 };
 use regex::Regex;
 
@@ -19,7 +19,7 @@ pub enum TokenValue {
     Punct(Punct),
     Kwd(Kwd),
     Val(LoxValue),
-    Id(String),
+    Id(String)
 }
 
 impl From<Punct> for TokenValue {
@@ -127,18 +127,6 @@ impl Token {
             TokenValue::Punct(p) => [Punct::Minus].contains(&p),
             _ => false,
         }
-    }
-
-    pub fn satisfies_or<Pred, ErrMaker>(&self, pred: Pred, err: ErrMaker) -> LoxResult<&Self>
-    where
-        Pred: Fn(&Self) -> bool,
-        ErrMaker: Fn(&Token) -> LoxError,
-    {
-        if pred(self) {
-            return Ok(self);
-        }
-
-        Err(err(self))
     }
 }
 

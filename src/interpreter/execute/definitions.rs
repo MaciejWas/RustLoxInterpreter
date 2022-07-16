@@ -23,11 +23,19 @@ impl RawLoxObject {
 /// Basically a pointer to `RawLoxObject` with some utility methods.
 pub struct LoxObj {
     ptr: Box<RawLoxObject>,
+    namespace_id: Option<usize>,
 }
 
 impl LoxObj {
     pub fn new(raw: RawLoxObject) -> Self {
-        LoxObj { ptr: Box::new(raw) }
+        LoxObj {
+            ptr: Box::new(raw),
+            namespace_id: None,
+        }
+    }
+
+    pub fn set_namespace(&mut self, id: usize) {
+        self.namespace_id = Some(id);
     }
 
     pub fn apply<F>(self, f: F) -> LoxResult<LoxObj>
@@ -69,6 +77,12 @@ impl From<LoxValue> for LoxObj {
 impl From<FunctionDefinition> for LoxObj {
     fn from(def: FunctionDefinition) -> LoxObj {
         LoxObj::new(RawLoxObject::Fun(def))
+    }
+}
+
+impl From<ClassDefinition> for LoxObj {
+    fn from(def: ClassDefinition) -> LoxObj {
+        LoxObj::new(RawLoxObject::Class(def))
     }
 }
 

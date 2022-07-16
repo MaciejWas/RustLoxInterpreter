@@ -2,7 +2,6 @@ print "fsadf";
 print 3;
 print true;
 
-
 var x = 3;
 print x;
 

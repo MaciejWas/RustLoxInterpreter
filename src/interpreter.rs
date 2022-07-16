@@ -70,26 +70,28 @@ impl LoxInterpreter {
         }
     }
 
-    pub fn run_file(&mut self, path: &String) {
+    pub fn run_file(&mut self, path: &String) -> Option<LoxError> {
         let content = std::fs::read_to_string(path).expect("Something went wrong reading the file");
 
         let scanner_output = Scanner::new(content.clone()).scan();
         if let Err(err) = scanner_output {
             println!("{}", err.generate_err_msg(&content));
-            return ();
+            return Some(err);
         }
 
         let parser_output = Parser::new(scanner_output.unwrap()).parse();
         if let Err(err) = parser_output {
             println!("{}", err.generate_err_msg(&content));
-            return ();
+            return Some(err);
         }
 
         let executor_output = self.executor.visit(&parser_output.unwrap());
         if let Err(err) = executor_output {
             println!("{}", err.generate_err_msg(&content));
-            return ();
+            return Some(err);
         }
+
+        None
     }
 
     pub fn handle_err(&self, _err: &std::io::Error) {}

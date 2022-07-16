@@ -129,7 +129,19 @@ impl Visitor<Statement, LoxResult<Evaluated>> for Executor {
                     *pos,
                 )?;
             }
-            Statement::Class(class_defn) => {
+            Statement::Class(defn) => {
+                let ClassDefinition { name, fields, methods } = defn;
+                let Token { val, pos } = name;
+
+                let identifier = match val {
+                    TokenValue::Id(id) => id.clone(),
+                    _ => panic!("Class name is not an identifier. This should have been caught by the parser but wasn't.")
+                };
+
+
+                let mut obj = LoxObj::from(defn.clone());
+                self.state.assign_namespace(&mut obj)?;
+                self.state.bind( identifier, obj, *pos )?;
                 unimplemented!()
             }
             Statement::Return(expr) => {

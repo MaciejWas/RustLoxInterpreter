@@ -14,8 +14,18 @@ pub struct Scope {
     name: String,
 }
 
+impl Scope {
+    fn new(name: String) -> Self {
+        Scope {
+            bindings: HashMap::new(),
+            name,
+        }
+    }
+}
+
 pub struct State {
     scope_stack: Vec<Scope>,
+    namespaces: HashMap<usize, Scope>,
 }
 
 impl State {
@@ -26,7 +36,21 @@ impl State {
         };
         let mut scope_stack = Vec::new();
         scope_stack.push(global_scope);
-        State { scope_stack }
+        State {
+            scope_stack,
+            namespaces: HashMap::new(),
+        }
+    }
+
+    pub fn assign_namespace(&mut self, obj: &mut LoxObj) -> LoxResult<()> {
+        let scope = Scope::new("class scope".to_string());
+        let id = match self.namespaces.keys().max() {
+            Some(x) => x + 1,
+            None => 0,
+        };
+        self.namespaces.insert(id, scope);
+        obj.set_namespace(id);
+        Ok(())
     }
 
     pub fn push_new_scope(&mut self) {
