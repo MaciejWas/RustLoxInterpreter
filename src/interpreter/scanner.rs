@@ -49,6 +49,7 @@ impl Scanner {
                 '.' => Ok(Dot.at(pos)),
                 '-' => Ok(Minus.at(pos)),
                 '+' => Ok(Plus.at(pos)),
+                '%' => Ok(Mod.at(pos)),
                 ';' => Ok(Semicolon.at(pos)),
                 '*' => Ok(Star.at(pos)),
                 '!' => self.handle_bang(),

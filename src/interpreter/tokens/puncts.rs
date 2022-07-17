@@ -11,6 +11,7 @@ pub enum Punct {
     Semicolon,
     Slash,
     Star,
+    Mod,
 
     Bang,
     BangEqual,

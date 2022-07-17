@@ -1,5 +1,7 @@
 //! Handling of bindings and scopes during runtime.
 
+use crate::interpreter::execute::definitions::LoxObjRef;
+use std::rc::Rc;
 use crate::interpreter::errors::ErrType::RuntimeError;
 use std::hash::Hash;
 use std::collections::hash_map::DefaultHasher;
@@ -30,28 +32,36 @@ pub struct Scope {
 
 impl Scope {
     pub fn new(name: String) -> Self {
+
+        let mut bindings = HashMap::with_capacity(100);
+        bindings.insert("mod".to_string(), LoxObj::Inbuilt("mod".to_string()));
+
         Scope {
-            bindings: HashMap::with_capacity(100),
+            bindings,
             name,
         }
     }
 
-    pub fn bind(&mut self, identifier: Token, raw_obj: LoxObj) {
-        let Token { val, pos } = identifier;
-        let TokenValue::Id(name) = val;
-        let id = hash_str(name);
-
-        self.bindings.insert(name, raw_obj);
+    pub fn bind(&mut self, identifier: Token, obj: LoxObj) {
+        let name = match identifier.val {
+            TokenValue::Id(name) => name,
+            _  => panic!("{:?} is not an identfier!", identifier) 
+        };
+        self.bindings.insert(name, obj);
     }
 
-    pub fn get(&self, identifier: Token) -> LoxResult<&mut LoxObj> {
+    pub fn get(&self, identifier: &Token) -> LoxResult<LoxObj> {
         let Token { val, pos } = identifier;
-        let TokenValue::Id(name) = val;
+        let name = match val {
+            TokenValue::Id(name) => name,
+            _  => panic!("{:?} is not an identfier!", identifier) 
+        };
 
-        let obj = self.bindings.get_mut(&name).ok_or(self.err()
-            .with_pos(pos)
+        let obj = self.bindings.get(name).ok_or(self.err()
+            .with_pos(*pos)
             .with_message(format!("Variable {:?} is not in scope", identifier))
-            .build())?;
+            .build())?
+            .clone();
 
         return Ok( obj )
     }
@@ -92,13 +102,10 @@ impl State {
     }
 
     pub fn bind(&mut self, identifier: Token, obj: LoxObj) {
-        let Token { val, pos } = identifier;
-        let TokenValue::Id(name) = val;
-
         let relevant_scope = self
             .scope_stack
             .iter_mut()
-            .filter(|scope| scope.bindings.contains_key(&name))
+            .filter(|scope| scope.get(&identifier).is_ok())
             .next(); // first scope which contains this identifier
 
         return match relevant_scope {
@@ -112,15 +119,14 @@ impl State {
         };
     }
 
-    pub fn get(&self, identifier: &String, pos: &Position) -> LoxResult<&mut LoxObj> {
+    pub fn get(&self, identifier: &Token) -> LoxResult<LoxObj> {
         for scope in self.scope_stack.iter().rev() {
-            let scope_search = scope.bindings.get(identifier);
-            if let Some(raw_obj) = scope.bindings.get(identifier) {
-                return Ok(&mut raw_obj);
+            if let Ok(obj) = scope.get(identifier) {
+                return Ok(obj);
             }
         }
         self.err()
-            .at(*pos)
+            .at(identifier.pos)
             .with_message(format!("Variable {:?} is not in scope", identifier))
             .to_result()
     }

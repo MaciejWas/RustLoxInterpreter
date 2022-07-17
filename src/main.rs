@@ -57,4 +57,11 @@ mod tests {
         let result = interpreter.run_file(&"./src/integration_tests/test_fn_call.js".to_string());
         assert_eq!(result.is_none(), true)
     }
+
+    #[test]
+    fn test_class() {
+        let mut interpreter = LoxInterpreter::new();
+        let result = interpreter.run_file(&"./src/integration_tests/test_class.js".to_string());
+        assert_eq!(result.is_none(), true)
+    }
 }

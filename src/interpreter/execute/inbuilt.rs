@@ -22,7 +22,7 @@ fn runtime_err_at(pos: Position) -> ErrBuilder {
 } 
 
 
-fn modulo(a: LoxObj, b: LoxObj, pos: Position) -> LoxResult<LoxObj> {
+pub fn modulo(a: LoxObj, b: LoxObj, pos: Position) -> LoxResult<LoxObj> {
     let cast_to_int = |obj: LoxObj| match obj {
         Plain(Integer(x)) => Ok(x),
         _ => runtime_err_at(pos).is_not(obj.to_string(), "integer").to_result()

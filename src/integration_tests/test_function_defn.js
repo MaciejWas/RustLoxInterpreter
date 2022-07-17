@@ -27,10 +27,6 @@ fun foo2(bar, baz) {
     return bar;
 };
 
-class xd {
-    var x = "d";
+fun fib(n) { if (n == 0) { return n; }; if (n==1) { return n; }; return fib(n-1) + fib(n-2); };
 
-    fun xddd() {
-        return 0;
-    };
-};
+print fib(20);

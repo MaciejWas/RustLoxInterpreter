@@ -9,7 +9,11 @@ pub fn eval_err() -> ErrBuilder {
 }
 
 pub fn handle(op: &Token, acc: LoxObj, val: LoxObj) -> LoxResult<LoxObj> {
-    let to_value = |x: LoxObj| x.to_value().ok_or(eval_err().is_not(acc, "value").build());
+    let to_value = |x: LoxObj| {
+        let repr = format!("{:?}", x);
+        x.to_value().ok_or(eval_err().at(op.pos).is_not(repr, "value").build())
+    };
+
     let acc = to_value(acc)?;
     let val = to_value(val)?;
 

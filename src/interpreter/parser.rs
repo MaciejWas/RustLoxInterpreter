@@ -172,7 +172,11 @@ impl Parser {
         let pos = self.token_reader.peek().map(|t| t.pos);
         self.consume_kwd(Kwd::Fun, "Parsing function definition")?;
 
-        let (fn_name, _) = self.consume_identifier("Expected function name")?;
+        let fn_name = self.token_reader.advance_or(self.expected_next_token_err("Parsing function definition"))?;
+        if !fn_name.is_identifier() {
+            return self.parsing_err().is_not(fn_name, "identifier").to_result()
+        }
+
         let args = self.fn_def_args()?;
         let fn_body = self.scoped_program()?;
 

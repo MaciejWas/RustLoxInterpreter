@@ -1,5 +1,8 @@
 //! A Visitor-style executor for `Vec<Statement>`.
 
+use crate::interpreter::execute::inbuilt::modulo;
+use std::collections::HashMap;
+use crate::interpreter::execute::executing::LoxObj::Plain;
 use crate::interpreter::parser::locator::locate;
 use crate::interpreter::tokens::LoxValue;
 use crate::interpreter::{
@@ -85,8 +88,13 @@ impl Visitor<Statement, LoxResult<Evaluated>> for Executor {
                 println!("{}", evaluated.to_string())
             }
             Statement::If(cond, program) => {
-                let cond_evaluated = self.visit(cond)?;
-                match Option::<bool>::from(cond_evaluated) {
+                let condition = self.visit(cond)?;
+                let can_do_if_stmt = match condition {
+                    Plain(val) => Some(bool::from(val)),
+                    _ => None
+                };
+
+                match can_do_if_stmt {
                     Some(true) => return self.scoped(|v| v.visit(program)),
                     Some(false) => return Ok(Evaluated::nil()),
                     None => {
@@ -98,8 +106,12 @@ impl Visitor<Statement, LoxResult<Evaluated>> for Executor {
                 }
             }
             Statement::WhileLoop(cond, program) => loop {
-                let cond_evaluated = self.visit(cond)?;
-                let can_continue_loop = Option::<bool>::from(cond_evaluated);
+                let loop_condition = self.visit(cond)?;
+                let can_continue_loop = match loop_condition {
+                    Plain(val) =>Some(bool::from(val)),
+                    _ => None
+                };
+
                 match can_continue_loop {
                     Some(true) => {
                         let evaluated_program = self.scoped(|v| v.visit(program))?;
@@ -124,19 +136,12 @@ impl Visitor<Statement, LoxResult<Evaluated>> for Executor {
             Statement::Fun(pos, function_definition) => {
                 self.state.bind(
                     function_definition.name.clone(),
-                    LoxObj::from(function_definition.clone()),
-                    pos,
-                )?;
+                    LoxObj::Fun(function_definition.clone()),
+                );
             }
             Statement::Class(defn) => {
-                let Token { val, pos } = &defn.name;
-
-                let identifier = match val {
-                    TokenValue::Id(id) => id.clone(),
-                    _ => panic!("Class name is not an identifier. This should have been caught by the parser but wasn't.")
-                };
-                let class_obj = LoxObj::from(defn.clone());
-                self.state.bind(identifier, class_obj, pos)?;
+                let class_obj = LoxObj::Class(defn.clone());
+                self.state.bind(defn.name.clone(), class_obj);
             }
             Statement::Return(expr) => {
                 let evaluated_expr = self.visit(expr)?;
@@ -199,20 +204,20 @@ impl Visitor<Factor, LoxResult<LoxObj>> for Executor {
     }
 }
 
-impl Visitor<Unary, LoxResult<&LoxObj>> for Executor {
-    fn visit(&mut self, unary: &Unary) -> LoxResult<&mut LoxObj> {
+impl Visitor<Unary, LoxResult<LoxObj>> for Executor {
+    fn visit(&mut self, unary: &Unary) -> LoxResult<LoxObj> {
         match unary {
             Unary::Final(None, token) => self.as_lox_obj(token),
             Unary::Final(Some(op), token) => {
                 let lox_obj = self.as_lox_obj(token)?;
-                let transformed = unary_op(op, lox_obj)?;
-                Ok(&mut transformed)
+                let transformed = unary_op(op, &lox_obj)?;
+                Ok(transformed)
             }
             Unary::Recursive(None, expr) => self.visit(expr.as_ref()),
             Unary::Recursive(Some(op), expr) => {
                 let result = self.visit(expr.as_ref())?;
                 let transformed = unary_op(op, &result)?;
-                Ok(&mut transformed)
+                Ok(transformed)
             }
             Unary::Call(operator, fn_name, args) => {
                 let func = self.as_lox_obj(fn_name)?;
@@ -222,12 +227,12 @@ impl Visitor<Unary, LoxResult<&LoxObj>> for Executor {
                     .map(|arg_expr| self.visit(arg_expr.as_ref()))
                     .collect();
 
-                let fn_output = self.call(func, args_evaluated?, pos)?;
+                let fn_output = self.call(&func, args_evaluated?, pos)?;
                 let result = match operator {
                     Some(op) => unary_op(op, &fn_output)?,
                     None => fn_output,
                 };
-                Ok(&mut result)
+                Ok(result)
             }
         }
     }
@@ -240,10 +245,10 @@ fn eval_fold(acc: LoxResult<LoxObj>, next: (&Token, LoxResult<LoxObj>)) -> LoxRe
 
 impl Executor {
     /// Evaluates token to `LoxObj` if token is an identifier or value
-    fn as_lox_obj(&self, token: &Token) -> LoxResult<&mut LoxObj> {
+    fn as_lox_obj(&self, token: &Token) -> LoxResult<LoxObj> {
         match &token.val {
-            TokenValue::Id(id) => self.state.get(&id, &token.pos),
-            TokenValue::Val(lox_val) => Ok(&mut LoxObj::Plain(lox_val.clone())),
+            TokenValue::Id(id) => self.state.get(token),
+            TokenValue::Val(lox_val) => Ok(LoxObj::Plain(lox_val.clone())),
             _ => Err(eval_err()
                 .at(token.pos)
                 .is_not(token, "a lox object")
@@ -254,6 +259,7 @@ impl Executor {
     fn call(&mut self, func: &LoxObj, args: Vec<LoxObj>, pos: Position) -> LoxResult<LoxObj> {
         match func {
             LoxObj::Fun(function_def) => self.call_function(function_def, args, pos),
+            LoxObj::Inbuilt(fn_name) => self.call_inbuilt(fn_name, args, pos),
             LoxObj::Class(class_def) => self.call_constructor(class_def, args, pos),
             _ => eval_err()
                 .at(pos)
@@ -262,17 +268,20 @@ impl Executor {
         }
     }
 
-    fn call_constructor(class_def: ClassDefinition, args: Vec<LoxObj>, pos: Position) -> LoxResult<LoxObj> {
-        for arg in args {
+    fn call_constructor(&self, class_def: &ClassDefinition, args: Vec<LoxObj>, pos: Position) -> LoxResult<LoxObj> {
+        let mut obj = LoxObj::Object(HashMap::new());
+        for (field_name, obj) in zip(class_def.fields.clone(), args) {
+            // obj.set(field_name, obj)
         };
         unimplemented!()
     }
 
     fn call_function(&mut self, function: &FunctionDefinition, args: Vec<LoxObj>, pos: Position) -> LoxResult<LoxObj> {
         self.state.push_new_scope();
-        zip(function.args, args)
-            .into_iter()
-            .map(|(arg_name, arg_evaluated)| self.state.bind(arg_name, arg_evaluated));
+
+        for (fn_arg, fn_arg_val) in zip(function.args.clone(), args) {
+            self.state.bind(fn_arg, fn_arg_val);
+        }
 
         let program_result = self.visit(&function.body)?;
 
@@ -282,5 +291,12 @@ impl Executor {
             Some(obj) => Ok(obj),
             None => Ok(LoxObj::Plain(LoxValue::from(0))),
         }
+    }
+
+    fn call_inbuilt(&mut self, fn_name: &String, args: Vec<LoxObj>, pos: Position) -> LoxResult<LoxObj> {
+        if fn_name.eq("mod") {
+            return modulo(args[0].clone(), args[1].clone(), pos);
+        };
+        panic!()
     }
 }

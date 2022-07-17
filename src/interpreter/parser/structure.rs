@@ -31,7 +31,7 @@ pub enum StatementKind {
 
 #[derive(Debug, Clone)]
 pub struct FunctionDefinition {
-    pub name: String,
+    pub name: Token,
     pub args: Vec<Token>,
     pub body: Program,
 }
