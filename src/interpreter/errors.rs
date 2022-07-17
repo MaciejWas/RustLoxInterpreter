@@ -13,6 +13,7 @@ pub enum ErrType {
     TokenizingErr,
     ScanningErr,
     LogicError,
+    RuntimeError,
     InterpreterError,
 }
 

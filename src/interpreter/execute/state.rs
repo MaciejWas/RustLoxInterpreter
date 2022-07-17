@@ -1,64 +1,83 @@
 //! Handling of bindings and scopes during runtime.
 
+use crate::interpreter::errors::ErrType::RuntimeError;
+use std::hash::Hash;
+use std::collections::hash_map::DefaultHasher;
+use std::hash::Hasher;
+use crate::interpreter::tokens::Token;
+use crate::interpreter::tokens::TokenValue;
 use crate::interpreter::errors::position::Position;
 use crate::interpreter::errors::ErrBuilder;
 use crate::interpreter::errors::ErrType::LogicError;
 use crate::interpreter::errors::LoxResult;
-use crate::interpreter::execute::definitions::{LoxObj, RawLoxObject};
+use crate::interpreter::execute::definitions::{LoxObj};
 use std::collections::HashMap;
 use std::vec::Vec;
 
+type ObjId = u64;
+
+fn hash_str(string: String) -> u64 {
+    let mut hasher = DefaultHasher::new();
+    string.hash(&mut hasher);
+    hasher.finish()
+}
+
 /// Simply a scope. Used inside loops, functions, classes, etc.
 pub struct Scope {
-    bindings: HashMap<String, RawLoxObject>,
+    bindings: HashMap<String, LoxObj>,
     name: String,
 }
 
 impl Scope {
-    fn new(name: String) -> Self {
+    pub fn new(name: String) -> Self {
         Scope {
-            bindings: HashMap::new(),
+            bindings: HashMap::with_capacity(100),
             name,
         }
     }
+
+    pub fn bind(&mut self, identifier: Token, raw_obj: LoxObj) {
+        let Token { val, pos } = identifier;
+        let TokenValue::Id(name) = val;
+        let id = hash_str(name);
+
+        self.bindings.insert(name, raw_obj);
+    }
+
+    pub fn get(&self, identifier: Token) -> LoxResult<&mut LoxObj> {
+        let Token { val, pos } = identifier;
+        let TokenValue::Id(name) = val;
+
+        let obj = self.bindings.get_mut(&name).ok_or(self.err()
+            .with_pos(pos)
+            .with_message(format!("Variable {:?} is not in scope", identifier))
+            .build())?;
+
+        return Ok( obj )
+    }
+
+    fn err(&self) -> ErrBuilder {
+        ErrBuilder::new().of_type(LogicError)
+    }
 }
 
+/// Wrapper around a stack of scopes
 pub struct State {
     scope_stack: Vec<Scope>,
-    namespaces: HashMap<usize, Scope>,
 }
 
 impl State {
     pub fn new() -> Self {
-        let global_scope = Scope {
-            bindings: HashMap::new(),
-            name: "Global scope".to_string(),
-        };
+        let global_scope = Scope::new("Global scope".to_string());
         let mut scope_stack = Vec::new();
         scope_stack.push(global_scope);
-        State {
-            scope_stack,
-            namespaces: HashMap::new(),
-        }
+        State { scope_stack }
     }
 
-    fn get_curr_scope(&mut self) -> &Scope {
-        self.scope_stack.last().unwrap_or_else(|| panic!("Global stack not present"))
-    }
-
-    fn assign_namespace(&mut self, obj: &mut LoxObj, pos: Position) -> LoxResult<()> {
-        let scope = Scope::new("class scope".to_string());
-        let id = match self.namespaces.keys().max() {
-            Some(x) => x + 1,
-            None => 0,
-        };
-        self.namespaces.insert(id, scope);
-        obj.set_namespace(id);
-        Ok(())
-    }
-
-    pub fn bind_to_obj(&mut self, id: &String, obj: LoxObj, pos: Position) {
-        let bind_to = self.get(id, pos);
+    fn get_curr_scope(&mut self) -> &mut Scope {
+        self.scope_stack
+            .last_mut()
+            .unwrap_or_else(|| panic!("Global stack not present"))
     }
 
     pub fn push_new_scope(&mut self) {
@@ -72,47 +91,41 @@ impl State {
         self.scope_stack.pop().map(|_| ())
     }
 
-    pub fn bind(&mut self, identifier: String, obj: LoxObj, pos: Position) -> LoxResult<()> {
-        let could_not_insert_into_scope_err = self
-            .err()
-            .at(pos)
-            .with_message("Could not insert into scope".to_string())
-            .build();
+    pub fn bind(&mut self, identifier: Token, obj: LoxObj) {
+        let Token { val, pos } = identifier;
+        let TokenValue::Id(name) = val;
 
         let relevant_scope = self
             .scope_stack
             .iter_mut()
-            .filter(|scope| scope.bindings.contains_key(&identifier))
+            .filter(|scope| scope.bindings.contains_key(&name))
             .next(); // first scope which contains this identifier
 
         return match relevant_scope {
             Some(scope) => {
-                scope.bindings.insert(identifier, RawLoxObject::from(obj));
-                Ok(())
+                scope.bind(identifier, LoxObj::from(obj));
             }
             None => {
                 self.get_curr_scope()
-                    .bindings
-                    .insert(identifier, RawLoxObject::from(obj));
-                Ok(())
+                    .bind(identifier, LoxObj::from(obj));
             }
         };
     }
 
-    pub fn get(&self, identifier: &String, pos: Position) -> LoxResult<LoxObj> {
+    pub fn get(&self, identifier: &String, pos: &Position) -> LoxResult<&mut LoxObj> {
         for scope in self.scope_stack.iter().rev() {
-            let last_scope_search = scope.bindings.get(identifier);
-            if last_scope_search.is_some() {
-                return Ok(last_scope_search.map(LoxObj::from).unwrap());
+            let scope_search = scope.bindings.get(identifier);
+            if let Some(raw_obj) = scope.bindings.get(identifier) {
+                return Ok(&mut raw_obj);
             }
         }
         self.err()
-            .with_pos(pos)
+            .at(*pos)
             .with_message(format!("Variable {:?} is not in scope", identifier))
             .to_result()
     }
 
     fn err(&self) -> ErrBuilder {
-        ErrBuilder::new().of_type(LogicError)
+        ErrBuilder::new().of_type(RuntimeError)
     }
 }

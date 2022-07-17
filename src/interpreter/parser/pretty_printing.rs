@@ -37,7 +37,7 @@ impl PrettyPrint for Statement {
                 expr.pretty_print(pad + 1)
             }
             Self::Let(lval, rval) => {
-                print_with_pad(format!("{}", lval.identifier), pad, true);
+                print_with_pad(format!("{:?}", lval.identifier), pad, true);
                 rval.expr.pretty_print(pad + 1);
             }
             Self::Print(expr) => expr.pretty_print(pad + 1),

@@ -32,7 +32,7 @@ pub enum StatementKind {
 #[derive(Debug, Clone)]
 pub struct FunctionDefinition {
     pub name: String,
-    pub args: Vec<String>,
+    pub args: Vec<Token>,
     pub body: Program,
 }
 
@@ -45,7 +45,7 @@ pub struct ClassDefinition {
 
 #[derive(Debug, Clone)]
 pub struct LVal {
-    pub identifier: String,
+    pub identifier: Token,
 }
 
 #[derive(Debug, Clone)]

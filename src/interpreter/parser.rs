@@ -185,7 +185,7 @@ impl Parser {
         Ok(Statement::Fun(pos.unwrap(), fn_def))
     }
 
-    fn fn_def_args(&self) -> LoxResult<Vec<String>> {
+    fn fn_def_args(&self) -> LoxResult<Vec<Token>> {
         let info = "parsing function definition arguments";
         let next_token_is_comma = || {
             self.token_reader
@@ -213,8 +213,12 @@ impl Parser {
                 return Ok(args);
             }
 
-            let (id, _) = self.consume_identifier("parsing function definition arguments")?;
-            args.push(id);
+            let next_token = self.token_reader.advance_or(self.expected_next_token_err(info))?;
+            if !next_token.is_identifier() {
+                return self.parsing_err().expected_but_found("identifier", next_token).to_result();
+            }
+
+            args.push(next_token.clone());
         }
 
         self.consume_punct(RightParen, info)?;
@@ -238,12 +242,16 @@ impl Parser {
         let info = "parsing assignment statement";
         self.consume_kwd(Kwd::Var, info)?;
 
-        let (identifier, _) = self.consume_identifier(info)?;
+        let next_token = self.token_reader.advance_or(self.expected_next_token_err(info))?;
+        if !next_token.is_identifier() {
+            return self.parsing_err().expected_but_found("identifier", next_token).to_result();
+        }
+
         self.consume_punct(Equal, info)?;
 
         let expr = self.expression()?;
         let lval = LVal {
-            identifier: identifier,
+            identifier: next_token.clone(),
         };
         let rval = RVal { expr };
         return Ok(Statement::Let(lval, rval));

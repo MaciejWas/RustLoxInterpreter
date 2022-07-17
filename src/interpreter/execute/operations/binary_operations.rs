@@ -1,3 +1,4 @@
+use crate::interpreter::execute::definitions::LoxObj;
 use crate::interpreter::errors::position::Position;
 use crate::interpreter::errors::ErrType::LogicError;
 use crate::interpreter::errors::*;
@@ -7,18 +8,24 @@ pub fn eval_err() -> ErrBuilder {
     ErrBuilder::new().of_type(LogicError)
 }
 
-pub fn handle(op: &Token, acc: LoxValue, val: LoxValue, curr_pos: Position) -> LoxResult<LoxValue> {
-    match op.as_punct()? {
-        Punct::Star => star(acc, val, curr_pos),
-        Punct::Plus => plus(acc, val, curr_pos),
-        Punct::Minus => minus(acc, val, curr_pos),
-        Punct::EqualEqual => eq(acc, val, curr_pos),
-        Punct::BangEqual => neq(acc, val, curr_pos),
+pub fn handle(op: &Token, acc: LoxObj, val: LoxObj) -> LoxResult<LoxObj> {
+    let to_value = |x: LoxObj| x.to_value().ok_or(eval_err().is_not(acc, "value").build());
+    let acc = to_value(acc)?;
+    let val = to_value(val)?;
+
+    let result = match op.as_punct()? {
+        Punct::Star => star(acc, val, op.pos),
+        Punct::Plus => plus(acc, val, op.pos),
+        Punct::Minus => minus(acc, val, op.pos),
+        Punct::EqualEqual => eq(acc, val, op.pos),
+        Punct::BangEqual => neq(acc, val, op.pos),
         _ => Err(eval_err()
-            .with_pos(curr_pos)
+            .with_pos(op.pos)
             .is_not(op, "a valid lox operation")
             .build()),
-    }
+    }?;
+
+    return Ok(LoxObj::Plain(result));
 }
 
 fn plus(acc: LoxValue, val: LoxValue, pos: Position) -> LoxResult<LoxValue> {

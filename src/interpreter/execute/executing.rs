@@ -6,7 +6,7 @@ use crate::interpreter::{
     errors::position::Position,
     errors::LoxResult,
     execute::{
-        definitions::{LoxObj, RawLoxObject},
+        definitions::{LoxObj},
         operations::{binary_operations, eval_err, unary_op},
     },
     parser::structure::*,
@@ -119,38 +119,24 @@ impl Visitor<Statement, LoxResult<Evaluated>> for Executor {
             Statement::Let(lval, rval) => {
                 let pos = locate(&rval.expr);
                 let right_evaluated = self.visit(&rval.expr)?;
-                self.state
-                    .bind(lval.identifier.clone(), right_evaluated, pos)?;
+                self.state.bind(lval.identifier.clone(), right_evaluated);
             }
             Statement::Fun(pos, function_definition) => {
                 self.state.bind(
                     function_definition.name.clone(),
                     LoxObj::from(function_definition.clone()),
-                    *pos,
+                    pos,
                 )?;
             }
             Statement::Class(defn) => {
-                let ClassDefinition {
-                    name,
-                    fields,
-                    methods,
-                } = defn;
-                let Token { val, pos } = name;
+                let Token { val, pos } = &defn.name;
 
                 let identifier = match val {
                     TokenValue::Id(id) => id.clone(),
                     _ => panic!("Class name is not an identifier. This should have been caught by the parser but wasn't.")
                 };
-
-                self.state.bind(identifier, LoxObj::from(defn.clone()), *pos)?;
-
-                for field in fields {
-                    self.state.bind_to_obj(identifier, field);
-                }
-                for method in methods {
-                    self.state.bind_to_obj(identifier, method);
-                }
-                
+                let class_obj = LoxObj::from(defn.clone());
+                self.state.bind(identifier, class_obj, pos)?;
             }
             Statement::Return(expr) => {
                 let evaluated_expr = self.visit(expr)?;
@@ -213,18 +199,20 @@ impl Visitor<Factor, LoxResult<LoxObj>> for Executor {
     }
 }
 
-impl Visitor<Unary, LoxResult<LoxObj>> for Executor {
-    fn visit(&mut self, unary: &Unary) -> LoxResult<LoxObj> {
+impl Visitor<Unary, LoxResult<&LoxObj>> for Executor {
+    fn visit(&mut self, unary: &Unary) -> LoxResult<&mut LoxObj> {
         match unary {
             Unary::Final(None, token) => self.as_lox_obj(token),
             Unary::Final(Some(op), token) => {
                 let lox_obj = self.as_lox_obj(token)?;
-                return lox_obj.apply(|raw| unary_op(op, raw));
+                let transformed = unary_op(op, lox_obj)?;
+                Ok(&mut transformed)
             }
             Unary::Recursive(None, expr) => self.visit(expr.as_ref()),
             Unary::Recursive(Some(op), expr) => {
-                let evaluated_expression = self.visit(expr.as_ref())?;
-                return evaluated_expression.apply(|raw| unary_op(op, raw));
+                let result = self.visit(expr.as_ref())?;
+                let transformed = unary_op(op, &result)?;
+                Ok(&mut transformed)
             }
             Unary::Call(operator, fn_name, args) => {
                 let func = self.as_lox_obj(fn_name)?;
@@ -235,36 +223,27 @@ impl Visitor<Unary, LoxResult<LoxObj>> for Executor {
                     .collect();
 
                 let fn_output = self.call(func, args_evaluated?, pos)?;
-                return match operator {
-                    Some(op) => fn_output.apply(|raw| unary_op(op, raw)),
-                    None => Ok(fn_output),
+                let result = match operator {
+                    Some(op) => unary_op(op, &fn_output)?,
+                    None => fn_output,
                 };
+                Ok(&mut result)
             }
         }
     }
 }
 
 fn eval_fold(acc: LoxResult<LoxObj>, next: (&Token, LoxResult<LoxObj>)) -> LoxResult<LoxObj> {
-    let acc: LoxObj = acc?;
     let (op, val) = next;
-    let val: LoxObj = val?;
-
-    if let Some(acc_val) = acc.to_value() {
-        if let Some(val_val) = val.to_value() {
-            let result = binary_operations::handle(op, acc_val, val_val, op.pos)?;
-            return Ok(LoxObj::from(result));
-        }
-    }
-
-    panic!("TODO: not panic")
+    binary_operations::handle(op, acc?, val?)
 }
 
 impl Executor {
     /// Evaluates token to `LoxObj` if token is an identifier or value
-    fn as_lox_obj(&self, token: &Token) -> LoxResult<LoxObj> {
+    fn as_lox_obj(&self, token: &Token) -> LoxResult<&mut LoxObj> {
         match &token.val {
-            TokenValue::Id(id) => self.state.get(&id, token.pos),
-            TokenValue::Val(lox_val) => Ok(LoxObj::from(lox_val.clone())),
+            TokenValue::Id(id) => self.state.get(&id, &token.pos),
+            TokenValue::Val(lox_val) => Ok(&mut LoxObj::Plain(lox_val.clone())),
             _ => Err(eval_err()
                 .at(token.pos)
                 .is_not(token, "a lox object")
@@ -272,27 +251,36 @@ impl Executor {
         }
     }
 
-    fn call(&mut self, func: LoxObj, args: Vec<LoxObj>, pos: Position) -> LoxResult<LoxObj> {
-        let function = func.transform(|raw| match raw {
-            RawLoxObject::Fun(function_def) => Ok(function_def),
+    fn call(&mut self, func: &LoxObj, args: Vec<LoxObj>, pos: Position) -> LoxResult<LoxObj> {
+        match func {
+            LoxObj::Fun(function_def) => self.call_function(function_def, args, pos),
+            LoxObj::Class(class_def) => self.call_constructor(class_def, args, pos),
             _ => eval_err()
                 .at(pos)
-                .is_not(raw.to_string(), "callable")
+                .is_not(func.to_string(), "callable")
                 .to_result(),
-        })?;
-
-        self.state.push_new_scope();
-
-        for (arg_name, arg_evaluated) in zip(function.args, args) {
-            self.state.bind(arg_name, arg_evaluated, pos)?;
         }
+    }
+
+    fn call_constructor(class_def: ClassDefinition, args: Vec<LoxObj>, pos: Position) -> LoxResult<LoxObj> {
+        for arg in args {
+        };
+        unimplemented!()
+    }
+
+    fn call_function(&mut self, function: &FunctionDefinition, args: Vec<LoxObj>, pos: Position) -> LoxResult<LoxObj> {
+        self.state.push_new_scope();
+        zip(function.args, args)
+            .into_iter()
+            .map(|(arg_name, arg_evaluated)| self.state.bind(arg_name, arg_evaluated));
+
         let program_result = self.visit(&function.body)?;
 
         self.state.pop_last_scope();
 
         match program_result.returned {
             Some(obj) => Ok(obj),
-            None => Ok(LoxObj::from(LoxValue::from(0))),
+            None => Ok(LoxObj::Plain(LoxValue::from(0))),
         }
     }
 }
